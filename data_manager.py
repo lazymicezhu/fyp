@@ -171,6 +171,12 @@ class DataInputGUI:
                                  command=self.export_data, width=8)
         export_button.pack(side=tk.LEFT, padx=(0, 5))
         
+        # 批量删除按钮
+        batch_delete_button = tk.Button(manage_frame, text="批量删除", 
+                                      font=(self.font_family, 10), bg="#d73527", fg="white",
+                                      command=self.batch_delete_entries, width=10)
+        batch_delete_button.pack(side=tk.RIGHT, padx=(0, 5))
+        
         # 删除按钮
         delete_button = tk.Button(manage_frame, text="删除", 
                                  font=(self.font_family, 10), bg="#ea4335", fg="white",
@@ -394,6 +400,192 @@ class DataInputGUI:
         stats = self.db.get_statistics()
         stats_text = f"总条目: {stats['total_entries']} | 总标签: {stats['total_tags']} | 文件大小: {stats['file_size']} 字节"
         self.stats_label.config(text=stats_text)
+    
+    def batch_delete_entries(self):
+        """批量删除条目"""
+        # 创建批量删除对话框
+        delete_window = tk.Toplevel(self.root)
+        delete_window.title("批量删除条目")
+        delete_window.geometry("500x400")
+        delete_window.configure(bg="#f5f5f5")
+        delete_window.resizable(False, False)
+        
+        # 居中显示窗口
+        delete_window.update_idletasks()
+        x = (delete_window.winfo_screenwidth() // 2) - (500 // 2)
+        y = (delete_window.winfo_screenheight() // 2) - (400 // 2)
+        delete_window.geometry(f"500x400+{x}+{y}")
+        
+        # 使窗口模态
+        delete_window.transient(self.root)
+        delete_window.grab_set()
+        
+        # 主框架
+        main_frame = tk.Frame(delete_window, bg="#f5f5f5")
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        # 标题
+        title_label = tk.Label(main_frame, text="批量删除条目", 
+                              font=(self.font_family, 16, "bold"), 
+                              bg="#f5f5f5", fg="#333")
+        title_label.pack(pady=(0, 20))
+        
+        # 说明文本
+        info_label = tk.Label(main_frame, 
+                              text="请输入要删除的ID列表，用逗号分隔\n例如: 1,3,5,7", 
+                              font=(self.font_family, 11), 
+                              bg="#f5f5f5", fg="#666")
+        info_label.pack(pady=(0, 10))
+        
+        # ID输入框
+        id_frame = tk.Frame(main_frame, bg="#f5f5f5")
+        id_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        tk.Label(id_frame, text="ID列表:", font=(self.font_family, 11), 
+                bg="#f5f5f5").pack(anchor="w")
+        
+        id_entry = tk.Entry(id_frame, font=(self.font_family, 11), width=50)
+        id_entry.pack(fill=tk.X, pady=(5, 0))
+        
+        # 预览区域
+        preview_frame = tk.LabelFrame(main_frame, text="预览要删除的条目", 
+                                     font=(self.font_family, 11, "bold"),
+                                     bg="#f5f5f5", fg="#333")
+        preview_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
+        
+        # 预览列表
+        preview_tree = ttk.Treeview(preview_frame, columns=("ID", "标题", "URL"), 
+                                   show="headings", height=8)
+        preview_tree.heading("ID", text="ID")
+        preview_tree.heading("标题", text="标题")
+        preview_tree.heading("URL", text="URL")
+        
+        preview_tree.column("ID", width=50)
+        preview_tree.column("标题", width=200)
+        preview_tree.column("URL", width=150)
+        
+        preview_tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        def update_preview():
+            """更新预览列表"""
+            # 清空现有项目
+            for item in preview_tree.get_children():
+                preview_tree.delete(item)
+            
+            # 解析ID列表
+            id_text = id_entry.get().strip()
+            if not id_text:
+                return
+            
+            try:
+                id_list = [int(x.strip()) for x in id_text.split(",") if x.strip()]
+            except ValueError:
+                return
+            
+            # 显示要删除的条目
+            for entry_id in id_list:
+                entry = self.db.get_entry_by_id(entry_id)
+                if entry:
+                    preview_tree.insert("", tk.END, values=(
+                        entry['id'],
+                        entry['title'][:30] + "..." if len(entry['title']) > 30 else entry['title'],
+                        entry['url'][:20] + "..." if len(entry['url']) > 20 else entry['url']
+                    ))
+        
+        # 绑定输入事件
+        id_entry.bind("<KeyRelease>", lambda e: update_preview())
+        
+        # 按钮框架
+        button_frame = tk.Frame(main_frame, bg="#f5f5f5")
+        button_frame.pack(fill=tk.X)
+        
+        # 确认删除按钮
+        confirm_button = tk.Button(button_frame, text="确认删除", 
+                                  font=(self.font_family, 12), bg="#d73527", fg="white",
+                                  command=lambda: self.execute_batch_delete(id_entry.get().strip(), delete_window),
+                                  width=12)
+        confirm_button.pack(side=tk.RIGHT, padx=(10, 0))
+        
+        # 取消按钮
+        cancel_button = tk.Button(button_frame, text="取消", 
+                                 font=(self.font_family, 12), bg="#666", fg="white",
+                                 command=delete_window.destroy, width=12)
+        cancel_button.pack(side=tk.RIGHT)
+        
+        # 刷新按钮
+        refresh_button = tk.Button(button_frame, text="刷新预览", 
+                                  font=(self.font_family, 12), bg="#4285f4", fg="white",
+                                  command=update_preview, width=12)
+        refresh_button.pack(side=tk.LEFT)
+        
+        # 初始预览
+        update_preview()
+    
+    def execute_batch_delete(self, id_text, window):
+        """执行批量删除"""
+        if not id_text.strip():
+            messagebox.showerror("错误", "请输入要删除的ID列表！")
+            return
+        
+        try:
+            # 解析ID列表
+            id_list = [int(x.strip()) for x in id_text.split(",") if x.strip()]
+        except ValueError:
+            messagebox.showerror("错误", "ID格式不正确！请输入数字，用逗号分隔。")
+            return
+        
+        if not id_list:
+            messagebox.showerror("错误", "没有有效的ID！")
+            return
+        
+        # 检查ID是否存在
+        valid_ids = []
+        invalid_ids = []
+        for entry_id in id_list:
+            entry = self.db.get_entry_by_id(entry_id)
+            if entry:
+                valid_ids.append(entry_id)
+            else:
+                invalid_ids.append(entry_id)
+        
+        if invalid_ids:
+            messagebox.showwarning("警告", f"以下ID不存在: {', '.join(map(str, invalid_ids))}")
+        
+        if not valid_ids:
+            messagebox.showerror("错误", "没有有效的ID可以删除！")
+            return
+        
+        # 确认删除
+        if messagebox.askyesno("确认删除", 
+                              f"确定要删除 {len(valid_ids)} 个条目吗？\n"
+                              f"ID列表: {', '.join(map(str, valid_ids))}"):
+            
+            # 执行删除
+            success_count = 0
+            failed_ids = []
+            
+            for entry_id in valid_ids:
+                if self.db.delete_entry(entry_id):
+                    success_count += 1
+                else:
+                    failed_ids.append(entry_id)
+            
+            # 保存数据
+            self.db.save_data()
+            
+            # 刷新列表
+            self.refresh_entry_list()
+            
+            # 关闭窗口
+            window.destroy()
+            
+            # 显示结果
+            if success_count == len(valid_ids):
+                messagebox.showinfo("成功", f"成功删除 {success_count} 个条目！")
+            else:
+                messagebox.showwarning("部分成功", 
+                                     f"成功删除 {success_count} 个条目\n"
+                                     f"删除失败: {', '.join(map(str, failed_ids))}")
     
     def run(self):
         """运行GUI"""
