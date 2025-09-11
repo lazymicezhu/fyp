@@ -124,6 +124,56 @@ def show_search_results():
     # 滚动条位置：(1100, 100)，高度：580
     scrollbar.place(x=1100, y=100, height=580)
     
+    # 绑定滚轮滑动事件
+    # 为画布绑定鼠标滚轮事件，支持上下滚动
+    def on_mousewheel(event):
+        """处理鼠标滚轮滚动事件"""
+        try:
+            # 向上滚动（滚轮向上）
+            if event.delta > 0:
+                canvas.yview_scroll(-1, "units")
+            # 向下滚动（滚轮向下）
+            else:
+                canvas.yview_scroll(1, "units")
+        except:
+            pass
+    
+    def on_mousewheel_linux(event):
+        """处理Linux系统的鼠标滚轮滚动事件"""
+        try:
+            # Linux系统使用不同的delta值
+            if event.num == 4:  # 向上滚动
+                canvas.yview_scroll(-1, "units")
+            elif event.num == 5:  # 向下滚动
+                canvas.yview_scroll(1, "units")
+        except:
+            pass
+    
+    # 绑定滚轮事件到画布（Windows/Mac）
+    canvas.bind("<MouseWheel>", on_mousewheel)
+    
+    # 绑定滚轮事件到画布（Linux）
+    canvas.bind("<Button-4>", on_mousewheel_linux)
+    canvas.bind("<Button-5>", on_mousewheel_linux)
+    
+    # 绑定滚轮事件到可滚动框架
+    scrollable_frame.bind("<MouseWheel>", on_mousewheel)
+    scrollable_frame.bind("<Button-4>", on_mousewheel_linux)
+    scrollable_frame.bind("<Button-5>", on_mousewheel_linux)
+    
+    # 绑定滚轮事件到整个结果框架，确保在任何位置都能滚动
+    results_frame.bind("<MouseWheel>", on_mousewheel)
+    results_frame.bind("<Button-4>", on_mousewheel_linux)
+    results_frame.bind("<Button-5>", on_mousewheel_linux)
+    
+    # 绑定滚轮事件到根窗口，确保全局滚轮支持
+    root.bind("<MouseWheel>", on_mousewheel)
+    root.bind("<Button-4>", on_mousewheel_linux)
+    root.bind("<Button-5>", on_mousewheel_linux)
+    
+    # 为画布设置焦点，确保能接收滚轮事件
+    canvas.focus_set()
+    
     # 遍历搜索结果，为每个结果创建显示项
     y_position = 20  # 初始垂直位置
     for i, result in enumerate(search_results):
@@ -486,6 +536,82 @@ def show_page_content(result):
         # 插入内容
         content_text.insert(tk.END, result["content"])
         content_text.config(state=tk.DISABLED)  # 设为只读
+    
+    # 为页面内容添加滚轮滑动功能
+    # 绑定滚轮事件到整个页面框架，支持上下滚动
+    def on_page_mousewheel(event):
+        """处理页面内容的鼠标滚轮滚动事件"""
+        try:
+            # 获取当前焦点组件
+            widget = event.widget
+            
+            # 如果焦点在ScrolledText组件上，使用其内置滚动
+            if isinstance(widget, scrolledtext.ScrolledText):
+                if event.delta > 0:
+                    widget.yview_scroll(-1, "units")
+                else:
+                    widget.yview_scroll(1, "units")
+            # 如果焦点在其他组件上，尝试滚动页面
+            else:
+                # 查找页面中的ScrolledText组件并滚动
+                for child in page_frame.winfo_children():
+                    if isinstance(child, scrolledtext.ScrolledText):
+                        if event.delta > 0:
+                            child.yview_scroll(-1, "units")
+                        else:
+                            child.yview_scroll(1, "units")
+                        break
+        except:
+            pass
+    
+    def on_page_mousewheel_linux(event):
+        """处理Linux系统的页面内容滚轮滚动事件"""
+        try:
+            # 获取当前焦点组件
+            widget = event.widget
+            
+            # 如果焦点在ScrolledText组件上，使用其内置滚动
+            if isinstance(widget, scrolledtext.ScrolledText):
+                if event.num == 4:  # 向上滚动
+                    widget.yview_scroll(-1, "units")
+                elif event.num == 5:  # 向下滚动
+                    widget.yview_scroll(1, "units")
+            # 如果焦点在其他组件上，尝试滚动页面
+            else:
+                # 查找页面中的ScrolledText组件并滚动
+                for child in page_frame.winfo_children():
+                    if isinstance(child, scrolledtext.ScrolledText):
+                        if event.num == 4:  # 向上滚动
+                            child.yview_scroll(-1, "units")
+                        elif event.num == 5:  # 向下滚动
+                            child.yview_scroll(1, "units")
+                        break
+        except:
+            pass
+    
+    # 绑定滚轮事件到页面框架（Windows/Mac）
+    page_frame.bind("<MouseWheel>", on_page_mousewheel)
+    
+    # 绑定滚轮事件到页面框架（Linux）
+    page_frame.bind("<Button-4>", on_page_mousewheel_linux)
+    page_frame.bind("<Button-5>", on_page_mousewheel_linux)
+    
+    # 绑定滚轮事件到根窗口，确保全局滚轮支持
+    root.bind("<MouseWheel>", on_page_mousewheel)
+    root.bind("<Button-4>", on_page_mousewheel_linux)
+    root.bind("<Button-5>", on_page_mousewheel_linux)
+    
+    # 为所有子组件绑定滚轮事件
+    def bind_mousewheel_recursive(widget):
+        """递归绑定滚轮事件到所有子组件"""
+        widget.bind("<MouseWheel>", on_page_mousewheel)
+        widget.bind("<Button-4>", on_page_mousewheel_linux)
+        widget.bind("<Button-5>", on_page_mousewheel_linux)
+        for child in widget.winfo_children():
+            bind_mousewheel_recursive(child)
+    
+    # 绑定所有子组件的滚轮事件
+    bind_mousewheel_recursive(page_frame)
 
 def open_url(url):
     """打开URL链接"""
