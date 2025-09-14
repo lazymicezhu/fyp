@@ -56,8 +56,8 @@ class LauncherGUI:
         self.root = tk.Tk()
         # 设置窗口标题，包含项目名称
         self.root.title("信息库系统启动器 - Lazymice Project")
-        # 设置窗口初始大小为600x500像素
-        self.root.geometry("600x500")
+        # 设置窗口初始大小为500x630像素
+        self.root.geometry("500x630")
         # 设置窗口背景色为浅灰色
         self.root.configure(bg="#f5f5f5")
         # 允许窗口调整大小
@@ -118,8 +118,8 @@ class LauncherGUI:
         button_frame.pack(fill=tk.X)
         
         # 创建搜索界面按钮
-        # 显示"🔍 打开搜索界面"，使用蓝色背景和白色文字
-        search_button = tk.Button(button_frame, text="🔍 打开搜索界面", 
+        # 显示"仿Google检索界面"，使用蓝色背景和白色文字
+        search_button = tk.Button(button_frame, text="仿Google检索界面", 
                                   font=(self.font_family, 14), bg="#4285f4", fg="white",
                                   command=self.open_search_interface, 
                                   relief=tk.FLAT, bd=0, height=2)
@@ -127,8 +127,8 @@ class LauncherGUI:
         search_button.pack(fill=tk.X, pady=(0, 15))
         
         # 创建数据管理按钮
-        # 显示"📝 打开数据管理"，使用绿色背景和白色文字
-        manage_button = tk.Button(button_frame, text="📝 打开数据管理", 
+        # 显示"打开数据管理"，使用绿色背景和白色文字
+        manage_button = tk.Button(button_frame, text="打开数据管理", 
                                  font=(self.font_family, 14), bg="#34a853", fg="white",
                                  command=self.open_data_manager, 
                                  relief=tk.FLAT, bd=0, height=2)
@@ -136,8 +136,8 @@ class LauncherGUI:
         manage_button.pack(fill=tk.X, pady=(0, 15))
         
         # 创建帮助按钮
-        # 显示"❓ 使用帮助"，使用黄色背景和黑色文字
-        help_button = tk.Button(button_frame, text="❓ 使用帮助", 
+        # 显示"使用帮助"，使用黄色背景和黑色文字
+        help_button = tk.Button(button_frame, text="使用帮助", 
                                font=(self.font_family, 14), bg="#fbbc04", fg="black",
                                command=self.show_help, 
                                relief=tk.FLAT, bd=0, height=2)
@@ -145,8 +145,8 @@ class LauncherGUI:
         help_button.pack(fill=tk.X, pady=(0, 15))
         
         # 创建退出按钮
-        # 显示"❌ 退出"，使用红色背景和白色文字
-        exit_button = tk.Button(button_frame, text="❌ 退出", 
+        # 显示"退出"，使用红色背景和白色文字
+        exit_button = tk.Button(button_frame, text="退出", 
                               font=(self.font_family, 14), bg="#ea4335", fg="white",
                               command=self.root.quit, 
                               relief=tk.FLAT, bd=0, height=2)

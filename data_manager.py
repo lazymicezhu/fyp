@@ -58,8 +58,8 @@ class DataInputGUI:
         self.root = tk.Tk()
         # 设置窗口标题，包含项目名称
         self.root.title("信息库数据管理 - Lazymice Project")
-        # 设置窗口初始大小为1200x800像素
-        self.root.geometry("1200x800")
+        # 设置窗口初始大小为1985x850像素
+        self.root.geometry("1985x850")
         # 设置窗口背景色为浅灰色
         self.root.configure(bg="#f5f5f5")
         # 设置最小窗口大小为1000x600像素，防止界面过小
