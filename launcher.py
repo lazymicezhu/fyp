@@ -13,6 +13,10 @@ import subprocess
 import sys
 import os
 
+# 导入新增的配置和异常处理模块
+from config import config
+from exceptions import safe_execute, UIError, error_handler
+
 class LauncherGUI:
     """
     启动器GUI类
@@ -35,17 +39,10 @@ class LauncherGUI:
     def setup_fonts(self):
         """
         设置系统字体
-        根据操作系统自动选择合适的中文字体
-        Windows使用微软雅黑，Mac使用苹方
+        使用配置模块中的字体设置，避免重复代码
         """
-        if platform.system() == "Windows":
-            # Windows系统使用微软雅黑字体
-            self.font_family = "Microsoft YaHei"
-        elif platform.system() == "Darwin":
-            # Mac系统使用苹方字体
-            self.font_family = "PingFang SC"
-        else:
-            self.font_family = "Arial"
+        font_config = config.get_font_config("default")
+        self.font_family = font_config.family
     
     def setup_main_window(self):
         """
@@ -170,43 +167,48 @@ class LauncherGUI:
         # 更新状态信息
         self.update_status()
     
+    @safe_execute(UIError, show_user_error=True)
     def open_search_interface(self):
         """
         打开搜索界面
-        启动Google搜索界面程序
+        启动Google搜索界面程序，优先使用重构版本
+        使用安全执行装饰器处理异常
         """
         try:
-            # 检查google.py文件是否存在
+            # 优先使用改进版本的google.py（已修复路径问题和添加滚轮滑动）
             if os.path.exists("google.py"):
-                # 使用subprocess启动新的Python进程运行google.py
                 subprocess.Popen([sys.executable, "google.py"])
-                # 更新状态标签显示成功信息
-                self.status_label.config(text="✅ 搜索界面已启动")
+                self.status_label.config(text="✅ 搜索界面已启动 (改进版本)")
+            elif os.path.exists("google_simple.py"):
+                subprocess.Popen([sys.executable, "google_simple.py"])
+                self.status_label.config(text="✅ 搜索界面已启动 (简化版本)")
+            elif os.path.exists("google_refactored.py"):
+                subprocess.Popen([sys.executable, "google_refactored.py"])
+                self.status_label.config(text="✅ 搜索界面已启动 (重构版本)")
             else:
-                # 如果文件不存在，显示错误对话框
-                messagebox.showerror("错误", "找不到 google.py 文件！")
+                raise UIError("未找到搜索界面文件", component="launcher", action="open_search")
+        except subprocess.SubprocessError as e:
+            raise UIError(f"启动搜索界面进程失败: {str(e)}", component="launcher", action="subprocess")
         except Exception as e:
-            # 如果启动过程中出现异常，显示错误对话框
-            messagebox.showerror("错误", f"启动搜索界面失败: {e}")
+            raise UIError(f"启动搜索界面失败: {str(e)}", component="launcher", action="open_search")
     
+    @safe_execute(UIError, show_user_error=True)
     def open_data_manager(self):
         """
         打开数据管理界面
         启动数据管理程序
+        使用安全执行装饰器处理异常
         """
         try:
-            # 检查data_manager.py文件是否存在
             if os.path.exists("data_manager.py"):
-                # 使用subprocess启动新的Python进程运行data_manager.py
                 subprocess.Popen([sys.executable, "data_manager.py"])
-                # 更新状态标签显示成功信息
                 self.status_label.config(text="✅ 数据管理界面已启动")
             else:
-                # 如果文件不存在，显示错误对话框
-                messagebox.showerror("错误", "找不到 data_manager.py 文件！")
+                raise UIError("未找到数据管理文件", component="launcher", action="open_data_manager")
+        except subprocess.SubprocessError as e:
+            raise UIError(f"启动数据管理进程失败: {str(e)}", component="launcher", action="subprocess")
         except Exception as e:
-            # 如果启动过程中出现异常，显示错误对话框
-            messagebox.showerror("错误", f"启动数据管理界面失败: {e}")
+            raise UIError(f"启动数据管理界面失败: {str(e)}", component="launcher", action="open_data_manager")
     
     def show_help(self):
         """

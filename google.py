@@ -1,768 +1,811 @@
-#################################################################
-###╔══════════════════════════════════════════════════════════╗##
-###║                      Lazymice Project                    ║##
-###║      Author: Lazymice                                    ║##
-###║      Start Date: 2025-09-11                              ║##
-###║      Description: FYP Project                            ║##
-###╚══════════════════════════════════════════════════════════╝##
-#################################################################
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
-'''
-导入tkinter 用于创建GUI
-导入PTL中的Image和ImageTK 用于处理和显示图片
-导入platform 用于判断当前操作系统
-导入json 用于数据存储
-导入re 用于正则表达式搜索
-'''
+"""
+简化版Google搜索界面
+修复依赖问题，可以独立运行的版本
+"""
+
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
-from PIL import Image, ImageTk
-import platform
+import os
 import json
-import re
+import platform
+import subprocess
+import sys
+import traceback
 
-'''
-自动选择合适的中文字体
-Windows 用微软雅黑
-Mac 用苹方
-'''
-if platform.system() == "Windows":
-    font_family = "Microsoft YaHei"
-elif platform.system() == "Darwin":
-    font_family = "PingFang SC"
+# 尝试导入PIL，如果失败则禁用图片功能
+try:
+    from PIL import Image, ImageTk
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+    print("警告: PIL/Pillow未安装，将禁用图片功能")
 
-# 导入独立的信息库模块
-from information_database import InformationDatabase
+# 尝试导入新模块，如果失败则使用简化版本
+try:
+    from information_database import InformationDatabase
+except ImportError:
+    print("错误: 找不到information_database.py模块")
+    print("请确保information_database.py文件在同一目录下")
+    sys.exit(1)
 
-# 创建信息库实例
-info_db = InformationDatabase()
-
-# 全局变量
-current_view = "search"  # 当前视图：search 或 results 或 page
-search_results = []
-
-def perform_search():
+class SimpleGoogleApp:
     """
-    执行搜索功能
-    从搜索框获取查询内容，在信息库中搜索，然后显示结果
+    简化版Google搜索应用
+    移除了复杂的依赖，专注于核心搜索功能
     """
-    # 声明全局变量，用于在不同函数间共享状态
-    global current_view, search_results
     
-    # 从搜索输入框获取查询内容，去除首尾空格
-    query = search_entry.get().strip()
-    
-    # 如果查询内容为空，直接返回，不执行搜索
-    if not query:
-        return
-    
-    # 调用信息库的搜索方法，获取搜索结果列表
-    search_results = info_db.search(query)
-    
-    # 设置当前视图为搜索结果界面
-    current_view = "results"
-    
-    # 切换到搜索结果界面
-    show_search_results()
-
-def show_search_results():
-    """
-    显示搜索结果界面
-    隐藏主搜索界面，创建新的搜索结果界面，显示搜索到的条目列表
-    """
-    # 声明全局变量，用于状态管理
-    global current_view
-    
-    # 隐藏主搜索界面，为搜索结果界面让出空间
-    main_frame.pack_forget()
-    
-    # 创建搜索结果界面框架
-    # 背景色为白色，宽度1150像素，高度700像素
-    results_frame = tk.Frame(root, bg="white", width=1150, height=700)
-    # 使用place布局，将框架居中显示在窗口中央
-    results_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-    
-    # 创建返回按钮
-    # 按钮文字为"← 返回搜索"，使用蓝色背景和白色文字
-    back_button = tk.Button(results_frame, text="← 返回搜索", 
-                           font=(font_family, 12), bg="#4285f4", fg="white",
-                           command=show_main_search)
-    # 使用place布局，将按钮定位在(20, 20)位置
-    back_button.place(x=20, y=20)
-    
-    # 创建搜索结果标题标签
-    # 显示搜索结果数量，使用18号加粗字体，深灰色文字
-    results_title = tk.Label(results_frame, text=f"搜索结果 ({len(search_results)} 条)", 
-                            font=(font_family, 18, "bold"), bg="white", fg="#333")
-    # 将标题定位在(20, 60)位置
-    results_title.place(x=20, y=60)
-    
-    # 创建滚动区域组件
-    # 画布组件，用于显示可滚动的内容区域
-    canvas = tk.Canvas(results_frame, bg="white", height=580, width=1100)
-    # 垂直滚动条，与画布的yview方法绑定
-    scrollbar = ttk.Scrollbar(results_frame, orient="vertical", command=canvas.yview)
-    # 可滚动的框架，用于放置搜索结果项
-    scrollable_frame = tk.Frame(canvas, bg="white")
-    
-    # 绑定滚动框架的配置事件
-    # 当框架大小改变时，自动更新画布的滚动区域
-    scrollable_frame.bind(
-        "<Configure>",
-        lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-    )
-    
-    # 在画布中创建窗口，将可滚动框架放入其中
-    # 锚点设置为西北角(nw)，确保内容从左上角开始显示
-    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-    # 配置画布的垂直滚动命令，与滚动条联动
-    canvas.configure(yscrollcommand=scrollbar.set)
-    
-    # 使用place布局定位画布和滚动条
-    # 画布位置：(20, 100)，尺寸：1080x580
-    canvas.place(x=20, y=100, width=1080, height=580)
-    # 滚动条位置：(1100, 100)，高度：580
-    scrollbar.place(x=1100, y=100, height=580)
-    
-    # 绑定滚轮滑动事件
-    # 为画布绑定鼠标滚轮事件，支持上下滚动
-    def on_mousewheel(event):
-        """处理鼠标滚轮滚动事件"""
-        try:
-            # 向上滚动（滚轮向上）
-            if event.delta > 0:
-                canvas.yview_scroll(-1, "units")
-            # 向下滚动（滚轮向下）
-            else:
-                canvas.yview_scroll(1, "units")
-        except:
-            pass
-    
-    def on_mousewheel_linux(event):
-        """处理Linux系统的鼠标滚轮滚动事件"""
-        try:
-            # Linux系统使用不同的delta值
-            if event.num == 4:  # 向上滚动
-                canvas.yview_scroll(-1, "units")
-            elif event.num == 5:  # 向下滚动
-                canvas.yview_scroll(1, "units")
-        except:
-            pass
-    
-    # 绑定滚轮事件到画布（Windows/Mac）
-    canvas.bind("<MouseWheel>", on_mousewheel)
-    
-    # 绑定滚轮事件到画布（Linux）
-    canvas.bind("<Button-4>", on_mousewheel_linux)
-    canvas.bind("<Button-5>", on_mousewheel_linux)
-    
-    # 绑定滚轮事件到可滚动框架
-    scrollable_frame.bind("<MouseWheel>", on_mousewheel)
-    scrollable_frame.bind("<Button-4>", on_mousewheel_linux)
-    scrollable_frame.bind("<Button-5>", on_mousewheel_linux)
-    
-    # 绑定滚轮事件到整个结果框架，确保在任何位置都能滚动
-    results_frame.bind("<MouseWheel>", on_mousewheel)
-    results_frame.bind("<Button-4>", on_mousewheel_linux)
-    results_frame.bind("<Button-5>", on_mousewheel_linux)
-    
-    # 绑定滚轮事件到根窗口，确保全局滚轮支持
-    root.bind("<MouseWheel>", on_mousewheel)
-    root.bind("<Button-4>", on_mousewheel_linux)
-    root.bind("<Button-5>", on_mousewheel_linux)
-    
-    # 为画布设置焦点，确保能接收滚轮事件
-    canvas.focus_set()
-    
-    # 遍历搜索结果，为每个结果创建显示项
-    y_position = 20  # 初始垂直位置
-    for i, result in enumerate(search_results):
-        # 创建单个搜索结果项的框架
-        # 背景色为白色，使用凸起边框效果，边框宽度为1像素
-        result_frame = tk.Frame(scrollable_frame, bg="white", relief=tk.RAISED, bd=1)
-        # 使用pack布局，水平填充，左右边距10像素，上下边距5像素
-        result_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        # 获取内容类型，默认为"article"
-        content_type = result.get("content_type", "article")
-        
-        # 定义不同类型对应的颜色映射
-        # 每种内容类型都有独特的颜色标识
-        type_colors = {
-            "article": "#4285f4",  # 文章 - 蓝色
-            "link": "#34a853",     # 链接 - 绿色
-            "image": "#fbbc04",    # 图片 - 黄色
-            "video": "#ea4335",    # 视频 - 红色
-            "code": "#9c27b0",     # 代码 - 紫色
-            "news": "#ff9800",     # 新闻 - 橙色
-            "tutorial": "#00bcd4", # 教程 - 青色
-            "tool": "#795548"      # 工具 - 棕色
-        }
-        
-        # 定义不同类型对应的中文名称映射
-        # 将英文类型名转换为中文显示名称
-        type_names = {
-            "article": "文章",
-            "link": "链接",
-            "image": "图片", 
-            "video": "视频",
-            "code": "代码",
-            "news": "新闻",
-            "tutorial": "教程",
-            "tool": "工具"
-        }
-        
-        # 创建内容类型标签
-        # 显示中文类型名称，使用9号加粗字体，白色文字
-        # 背景色根据类型动态设置，左右内边距8像素，上下内边距2像素
-        type_label = tk.Label(result_frame, text=type_names.get(content_type, content_type), 
-                             font=(font_family, 9, "bold"), bg=type_colors.get(content_type, "#666"), 
-                             fg="white", padx=8, pady=2)
-        # 将类型标签左对齐放置，左右边距10像素，上下边距(10, 5)像素
-        type_label.pack(anchor="w", padx=10, pady=(10, 5))
-        
-        # 创建可点击的标题标签
-        # 显示条目标题，使用14号加粗字体，蓝色文字(#1a0dab)，鼠标悬停时显示手型光标
-        title_label = tk.Label(result_frame, text=result["title"], 
-                              font=(font_family, 14, "bold"), bg="white", fg="#1a0dab",
-                              cursor="hand2")
-        # 左对齐放置，左右边距10像素，上下边距(0, 5)像素
-        title_label.pack(anchor="w", padx=10, pady=(0, 5))
-        # 绑定鼠标左键点击事件，点击时调用show_page_content函数显示完整内容
-        title_label.bind("<Button-1>", lambda e, r=result: show_page_content(r))
-        
-        # 创建URL标签
-        # 显示条目的URL地址，使用10号字体，绿色文字(#006621)
-        url_label = tk.Label(result_frame, text=result["url"], 
-                            font=(font_family, 10), bg="white", fg="#006621")
-        # 左对齐放置，左右边距10像素
-        url_label.pack(anchor="w", padx=10)
-        
-        # 根据内容类型动态显示不同的预览信息
-        # 每种类型都有独特的预览方式，提供更丰富的信息展示
-        if content_type == "link":
-            # 链接类型：显示内容描述的前150个字符
-            # 如果内容超过150字符，则截断并添加省略号
-            content_preview = result["content"][:150] + "..." if len(result["content"]) > 150 else result["content"]
-        elif content_type == "image":
-            # 图片类型：显示图片的元数据信息
-            # 获取图片的元数据，包括尺寸、格式、文件大小等信息
-            metadata = result.get("metadata", {})
-            metadata_info = []
-            # 如果存在尺寸信息，添加到预览中
-            if "dimensions" in metadata:
-                metadata_info.append(f"尺寸: {metadata['dimensions']}")
-            # 如果存在格式信息，添加到预览中
-            if "format" in metadata:
-                metadata_info.append(f"格式: {metadata['format']}")
-            # 如果存在文件大小信息，添加到预览中
-            if "file_size" in metadata:
-                metadata_info.append(f"大小: {metadata['file_size']}")
-            # 将元数据信息用"|"连接，如果没有元数据则显示内容前150字符
-            content_preview = " | ".join(metadata_info) if metadata_info else result["content"][:150]
-        elif content_type == "video":
-            # 视频类型：显示视频的时长、平台、观看数等信息
-            # 获取视频的元数据信息
-            metadata = result.get("metadata", {})
-            video_info = []
-            # 如果存在时长信息，添加到预览中
-            if "duration" in metadata:
-                video_info.append(f"时长: {metadata['duration']}")
-            # 如果存在平台信息，添加到预览中
-            if "platform" in metadata:
-                video_info.append(f"平台: {metadata['platform']}")
-            # 如果存在观看数信息，添加到预览中
-            if "views" in metadata:
-                video_info.append(f"观看: {metadata['views']}")
-            # 将视频信息用"|"连接，如果没有信息则显示内容前150字符
-            content_preview = " | ".join(video_info) if video_info else result["content"][:150]
-        elif content_type == "code":
-            # 代码类型：显示编程语言和复杂度信息
-            # 获取代码的元数据信息
-            metadata = result.get("metadata", {})
-            code_info = []
-            # 如果存在编程语言信息，添加到预览中
-            if "language" in metadata:
-                code_info.append(f"语言: {metadata['language']}")
-            # 如果存在复杂度信息，添加到预览中
-            if "complexity" in metadata:
-                code_info.append(f"复杂度: {metadata['complexity']}")
-            # 将代码信息用"|"连接，如果没有信息则显示内容前150字符
-            content_preview = " | ".join(code_info) if code_info else result["content"][:150]
-        elif content_type == "news":
-            # 新闻类型：显示新闻来源和时间信息
-            # 获取新闻的元数据信息
-            metadata = result.get("metadata", {})
-            news_info = []
-            # 如果存在来源信息，添加到预览中
-            if "source" in metadata:
-                news_info.append(f"来源: {metadata['source']}")
-            # 如果存在发布时间信息，添加到预览中
-            if "publish_time" in metadata:
-                news_info.append(f"时间: {metadata['publish_time']}")
-            # 将新闻信息用"|"连接，如果没有信息则显示内容前150字符
-            content_preview = " | ".join(news_info) if news_info else result["content"][:150]
-        elif content_type == "tutorial":
-            # 教程类型：显示难度、时长、步骤数等信息
-            # 获取教程的元数据信息
-            metadata = result.get("metadata", {})
-            tutorial_info = []
-            # 如果存在难度信息，添加到预览中
-            if "difficulty" in metadata:
-                tutorial_info.append(f"难度: {metadata['difficulty']}")
-            # 如果存在时长信息，添加到预览中
-            if "duration" in metadata:
-                tutorial_info.append(f"时长: {metadata['duration']}")
-            # 如果存在步骤数信息，添加到预览中
-            if "steps" in metadata:
-                tutorial_info.append(f"步骤: {metadata['steps']}")
-            # 将教程信息用"|"连接，如果没有信息则显示内容前150字符
-            content_preview = " | ".join(tutorial_info) if tutorial_info else result["content"][:150]
-        elif content_type == "tool":
-            # 工具类型：显示价格、平台、版本等信息
-            # 获取工具的元数据信息
-            metadata = result.get("metadata", {})
-            tool_info = []
-            # 如果存在价格信息，添加到预览中
-            if "price" in metadata:
-                tool_info.append(f"价格: {metadata['price']}")
-            # 如果存在平台信息，添加到预览中
-            if "platform" in metadata:
-                tool_info.append(f"平台: {metadata['platform']}")
-            # 如果存在开发者信息，添加到预览中
-            if "developer" in metadata:
-                tool_info.append(f"开发者: {metadata['developer']}")
-            # 将工具信息用"|"连接，如果没有信息则显示内容前150字符
-            content_preview = " | ".join(tool_info) if tool_info else result["content"][:150]
+    def __init__(self):
+        """初始化应用"""
+        # 设置字体
+        if platform.system() == "Windows":
+            self.font_family = "Microsoft YaHei"
+        elif platform.system() == "Darwin":
+            self.font_family = "PingFang SC"  
         else:
-            # 默认情况（文章类型）：显示内容的前200个字符
-            # 如果内容超过200字符，则截断并添加省略号
-            content_preview = result["content"][:200] + "..." if len(result["content"]) > 200 else result["content"]
+            self.font_family = "Arial"
         
-        # 创建内容预览标签
-        # 显示动态生成的内容预览，使用11号字体，深灰色文字
-        # 设置自动换行长度为1000像素，左对齐显示
-        content_label = tk.Label(result_frame, text=content_preview, 
-                                font=(font_family, 11), bg="white", fg="#545454",
-                                wraplength=1000, justify="left")
-        # 左对齐放置，左右边距10像素，上下边距(5, 10)像素
-        content_label.pack(anchor="w", padx=10, pady=(5, 10))
-        
-        # 创建标签显示区域
-        # 如果条目有标签，则显示标签信息
-        if result["tags"]:
-            # 将标签列表转换为字符串，用逗号分隔
-            tags_text = "标签: " + ", ".join(result["tags"])
-            # 创建标签显示标签，使用9号字体，深灰色文字
-            tags_label = tk.Label(result_frame, text=tags_text, 
-                                 font=(font_family, 9), bg="white", fg="#666")
-            # 左对齐放置，左右边距10像素，上下边距(0, 10)像素
-            tags_label.pack(anchor="w", padx=10, pady=(0, 10))
-
-def show_page_content(result):
-    """
-    显示页面内容界面
-    隐藏搜索结果界面，创建新的页面内容界面，根据内容类型显示不同的内容
-    """
-    # 声明全局变量，用于状态管理
-    global current_view
-    
-    # 隐藏搜索结果界面
-    # 遍历根窗口的所有子组件，销毁除主框架外的所有框架组件
-    for widget in root.winfo_children():
-        if isinstance(widget, tk.Frame) and widget != main_frame:
-            widget.destroy()
-    
-    # 创建页面内容界面框架
-    # 背景色为白色，宽度1150像素，高度700像素
-    page_frame = tk.Frame(root, bg="white", width=1150, height=700)
-    # 使用place布局，将框架居中显示在窗口中央
-    page_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-    
-    # 创建返回按钮
-    # 按钮文字为"← 返回搜索结果"，使用蓝色背景和白色文字
-    back_button = tk.Button(page_frame, text="← 返回搜索结果", 
-                           font=(font_family, 12), bg="#4285f4", fg="white",
-                           command=show_search_results)
-    # 使用place布局，将按钮定位在(20, 20)位置
-    back_button.place(x=20, y=20)
-    
-    # 创建页面标题标签
-    # 显示条目的标题，使用20号加粗字体，深灰色文字
-    page_title = tk.Label(page_frame, text=result["title"], 
-                         font=(font_family, 20, "bold"), bg="white", fg="#333")
-    # 将标题定位在(20, 60)位置
-    page_title.place(x=20, y=60)
-    
-    # 创建URL显示标签
-    # 显示条目的URL地址，使用12号字体，绿色文字
-    url_label = tk.Label(page_frame, text=result["url"], 
-                        font=(font_family, 12), bg="white", fg="#006621")
-    # 将URL标签定位在(20, 100)位置
-    url_label.place(x=20, y=100)
-    
-    # 根据内容类型动态显示不同的内容
-    # 每种类型都有独特的显示方式，提供最佳的用户体验
-    content_type = result.get("content_type", "article")
-    
-    if content_type == "link":
-        # 链接类型显示
-        link_frame = tk.Frame(page_frame, bg="white")
-        link_frame.place(x=20, y=130, width=1100, height=500)
-        
-        # 链接描述
-        desc_label = tk.Label(link_frame, text="链接描述:", 
-                             font=(font_family, 12, "bold"), bg="white", fg="#333")
-        desc_label.pack(anchor="w", pady=(0, 10))
-        
-        desc_text = scrolledtext.ScrolledText(link_frame, font=(font_family, 11),
-                                            wrap=tk.WORD, height=8, bg="white", fg="#333")
-        desc_text.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
-        desc_text.insert(tk.END, result["content"])
-        desc_text.config(state=tk.DISABLED)
-        
-        # 访问链接按钮
-        visit_button = tk.Button(link_frame, text="访问链接", 
-                                font=(font_family, 12), bg="#4285f4", fg="white",
-                                command=lambda: open_url(result["url"]))
-        visit_button.pack(pady=10)
-        
-    elif content_type == "image":
-        # 图片类型显示
-        image_frame = tk.Frame(page_frame, bg="white")
-        image_frame.place(x=20, y=130, width=1100, height=500)
-        
-        # 图片描述
-        desc_label = tk.Label(image_frame, text="图片描述:", 
-                             font=(font_family, 12, "bold"), bg="white", fg="#333")
-        desc_label.pack(anchor="w", pady=(0, 10))
-        
-        desc_text = scrolledtext.ScrolledText(image_frame, font=(font_family, 11),
-                                            wrap=tk.WORD, height=6, bg="white", fg="#333")
-        desc_text.pack(fill=tk.X, pady=(0, 10))
-        desc_text.insert(tk.END, result["content"])
-        desc_text.config(state=tk.DISABLED)
-        
-        # 图片信息
-        metadata = result.get("metadata", {})
-        if metadata:
-            info_label = tk.Label(image_frame, text="图片信息:", 
-                                 font=(font_family, 12, "bold"), bg="white", fg="#333")
-            info_label.pack(anchor="w", pady=(10, 5))
-            
-            info_text = ""
-            for key, value in metadata.items():
-                info_text += f"{key}: {value}\n"
-            
-            info_display = tk.Text(image_frame, font=(font_family, 10), height=6,
-                                 bg="#f5f5f5", fg="#333", relief=tk.FLAT, bd=0)
-            info_display.pack(fill=tk.X)
-            info_display.insert(tk.END, info_text)
-            info_display.config(state=tk.DISABLED)
-    
-    elif content_type == "video":
-        # 视频类型显示
-        video_frame = tk.Frame(page_frame, bg="white")
-        video_frame.place(x=20, y=130, width=1100, height=500)
-        
-        # 视频描述
-        desc_label = tk.Label(video_frame, text="视频描述:", 
-                             font=(font_family, 12, "bold"), bg="white", fg="#333")
-        desc_label.pack(anchor="w", pady=(0, 10))
-        
-        desc_text = scrolledtext.ScrolledText(video_frame, font=(font_family, 11),
-                                            wrap=tk.WORD, height=6, bg="white", fg="#333")
-        desc_text.pack(fill=tk.X, pady=(0, 10))
-        desc_text.insert(tk.END, result["content"])
-        desc_text.config(state=tk.DISABLED)
-        
-        # 视频信息
-        metadata = result.get("metadata", {})
-        if metadata:
-            info_label = tk.Label(video_frame, text="视频信息:", 
-                                 font=(font_family, 12, "bold"), bg="white", fg="#333")
-            info_label.pack(anchor="w", pady=(10, 5))
-            
-            info_text = ""
-            for key, value in metadata.items():
-                info_text += f"{key}: {value}\n"
-            
-            info_display = tk.Text(video_frame, font=(font_family, 10), height=6,
-                                 bg="#f5f5f5", fg="#333", relief=tk.FLAT, bd=0)
-            info_display.pack(fill=tk.X)
-            info_display.insert(tk.END, info_text)
-            info_display.config(state=tk.DISABLED)
-    
-    elif content_type == "code":
-        # 代码类型显示
-        code_frame = tk.Frame(page_frame, bg="white")
-        code_frame.place(x=20, y=130, width=1100, height=500)
-        
-        # 代码描述
-        desc_label = tk.Label(code_frame, text="代码说明:", 
-                             font=(font_family, 12, "bold"), bg="white", fg="#333")
-        desc_label.pack(anchor="w", pady=(0, 10))
-        
-        desc_text = scrolledtext.ScrolledText(code_frame, font=(font_family, 11),
-                                            wrap=tk.WORD, height=4, bg="white", fg="#333")
-        desc_text.pack(fill=tk.X, pady=(0, 10))
-        desc_text.insert(tk.END, result["content"])
-        desc_text.config(state=tk.DISABLED)
-        
-        # 代码内容
-        code_label = tk.Label(code_frame, text="代码内容:", 
-                             font=(font_family, 12, "bold"), bg="white", fg="#333")
-        code_label.pack(anchor="w", pady=(10, 5))
-        
-        code_text = scrolledtext.ScrolledText(code_frame, font=("Consolas", 10),
-                                            wrap=tk.NONE, height=12, bg="#f8f8f8", fg="#333")
-        code_text.pack(fill=tk.BOTH, expand=True)
-        
-        # 获取代码内容（从content字段）
-        code_content = result["content"]
-        code_text.insert(tk.END, code_content)
-        code_text.config(state=tk.DISABLED)
-    
-    else:
-        # 默认文章类型显示
-        content_text = scrolledtext.ScrolledText(page_frame, 
-                                                font=(font_family, 12),
-                                                wrap=tk.WORD, 
-                                                width=100, height=25,
-                                                bg="white", fg="#333",
-                                                relief=tk.FLAT, bd=0)
-        content_text.place(x=20, y=130, width=1100, height=500)
-        
-        # 插入内容
-        content_text.insert(tk.END, result["content"])
-        content_text.config(state=tk.DISABLED)  # 设为只读
-    
-    # 为页面内容添加滚轮滑动功能
-    # 绑定滚轮事件到整个页面框架，支持上下滚动
-    def on_page_mousewheel(event):
-        """处理页面内容的鼠标滚轮滚动事件"""
+        # 创建信息库实例
         try:
-            # 获取当前焦点组件
-            widget = event.widget
+            self.info_db = InformationDatabase()
+        except Exception as e:
+            messagebox.showerror("数据库错误", f"初始化信息库失败: {e}")
+            sys.exit(1)
+        
+        # 应用状态
+        self.current_view = "search"
+        self.search_results = []
+        self.current_page_data = {}
+        self.current_query = ""  # 当前搜索查询，用于高亮显示
+        
+        # 搜索历史
+        self.search_history = []
+        self.load_simple_history()
+        
+        # 界面组件
+        self.root = None
+        self.main_frame = None
+        self.results_frame = None
+        self.page_frame = None
+        
+        # 初始化UI
+        self.setup_ui()
+    
+    def load_simple_history(self):
+        """加载简单的搜索历史"""
+        try:
+            if os.path.exists("search_history_simple.json"):
+                with open("search_history_simple.json", 'r', encoding='utf-8') as f:
+                    self.search_history = json.load(f)
+        except Exception as e:
+            print(f"加载搜索历史失败: {e}")
+            self.search_history = []
+    
+    def save_simple_history(self):
+        """保存简单的搜索历史"""
+        try:
+            with open("search_history_simple.json", 'w', encoding='utf-8') as f:
+                json.dump(self.search_history[-20:], f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"保存搜索历史失败: {e}")
+    
+    def add_to_history(self, query):
+        """添加到搜索历史"""
+        if query and query.strip():
+            query = query.strip()
+            if query in self.search_history:
+                self.search_history.remove(query)
+            self.search_history.insert(0, query)
+            self.save_simple_history()
+    
+    def setup_ui(self):
+        """设置用户界面"""
+        try:
+            # 创建主窗口
+            self.root = tk.Tk()
+            self.root.title("Google搜索 - 简化版")
+            self.root.geometry("1024x768")
+            self.root.configure(bg="white")
             
-            # 如果焦点在ScrolledText组件上，使用其内置滚动
-            if isinstance(widget, scrolledtext.ScrolledText):
-                if event.delta > 0:
-                    widget.yview_scroll(-1, "units")
+            # 居中窗口
+            self.center_window()
+            
+            # 创建主界面
+            self.setup_main_search()
+            
+            # 绑定键盘事件
+            self.root.bind('<Return>', lambda e: self.perform_search())
+            self.root.bind('<Escape>', lambda e: self.show_main_search())
+            
+        except Exception as e:
+            print(f"UI初始化失败: {e}")
+            sys.exit(1)
+    
+    def center_window(self):
+        """窗口居中"""
+        self.root.update_idletasks()
+        width = self.root.winfo_width()
+        height = self.root.winfo_height()
+        x = (self.root.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.root.winfo_screenheight() // 2) - (height // 2)
+        self.root.geometry(f"{width}x{height}+{x}+{y}")
+    
+    def setup_main_search(self):
+        """设置主搜索界面"""
+        # 创建主框架
+        self.main_frame = tk.Frame(self.root, bg="white")
+        self.main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Logo区域
+        logo_frame = tk.Frame(self.main_frame, bg="white")
+        logo_frame.pack(pady=(80, 30))
+        
+        # 尝试加载logo图片，加强路径和错误处理
+        logo_loaded = False
+        if PIL_AVAILABLE:
+            # 尝试多个可能的图片路径
+            logo_paths = [
+                "google_logo.png",
+                os.path.join(os.getcwd(), "google_logo.png"),
+                os.path.join(os.path.dirname(__file__), "google_logo.png")
+            ]
+            
+            for logo_path in logo_paths:
+                try:
+                    if os.path.exists(logo_path) and os.path.isfile(logo_path):
+                        img = Image.open(logo_path)
+                        img = img.resize((300, 100), Image.Resampling.LANCZOS)
+                        self.google_logo = ImageTk.PhotoImage(img)
+                        logo_label = tk.Label(logo_frame, image=self.google_logo, bg="white")
+                        logo_label.pack()
+                        logo_loaded = True
+                        break
+                except Exception as e:
+                    print(f"尝试加载logo图片失败 ({logo_path}): {e}")
+                    continue
+        
+        if not logo_loaded:
+            # 使用文字logo
+            logo_label = tk.Label(logo_frame, text="Google",
+                                font=(self.font_family, 36, "bold"),
+                                bg="white", fg="#4285f4")
+            logo_label.pack()
+        
+        # 副标题
+        subtitle = tk.Label(logo_frame, text="信息库搜索系统",
+                          font=(self.font_family, 14),
+                          bg="white", fg="#666")
+        subtitle.pack(pady=(10, 0))
+        
+        # 搜索框区域
+        search_frame = tk.Frame(self.main_frame, bg="white")
+        search_frame.pack(pady=(0, 20))
+        
+        # 搜索输入框容器
+        search_container = tk.Frame(search_frame, bg="#f8f9fa", relief=tk.SOLID, bd=1)
+        search_container.pack()
+        
+        # 搜索输入框
+        self.search_entry = tk.Entry(search_container,
+                                   font=(self.font_family, 16),
+                                   width=50, relief=tk.FLAT, bd=10,
+                                   bg="#f8f9fa")
+        self.search_entry.pack(padx=15, pady=12)
+        self.search_entry.focus()
+        
+        # 绑定事件
+        self.search_entry.bind('<Return>', lambda e: self.perform_search())
+        
+        # 搜索历史区域（如果有历史）
+        if self.search_history:
+            self.create_history_section()
+        
+        # 按钮区域
+        buttons_frame = tk.Frame(self.main_frame, bg="white")
+        buttons_frame.pack(pady=(20, 40))
+        
+        # 搜索按钮
+        search_button = tk.Button(buttons_frame, text="搜索",
+                                font=(self.font_family, 13),
+                                bg="#f8f9fa", fg="#333",
+                                relief=tk.FLAT, bd=1,
+                                padx=20, pady=8,
+                                command=self.perform_search)
+        search_button.pack(side=tk.LEFT, padx=(0, 10))
+        
+        # 数据管理按钮
+        manage_button = tk.Button(buttons_frame, text="数据管理",
+                                font=(self.font_family, 13),
+                                bg="#f8f9fa", fg="#333",
+                                relief=tk.FLAT, bd=1,
+                                padx=20, pady=8,
+                                command=self.open_data_manager)
+        manage_button.pack(side=tk.LEFT)
+    
+    def create_history_section(self):
+        """创建搜索历史区域"""
+        if not self.search_history:
+            return
+        
+        history_frame = tk.Frame(self.main_frame, bg="white")
+        history_frame.pack(pady=(10, 20))
+        
+        history_title = tk.Label(history_frame, text="搜索历史",
+                               font=(self.font_family, 12, "bold"),
+                               bg="white", fg="#666")
+        history_title.pack()
+        
+        # 历史记录列表
+        self.history_listbox = tk.Listbox(history_frame,
+                                        font=(self.font_family, 10),
+                                        height=5, width=60)
+        self.history_listbox.pack(pady=(5, 0))
+        
+        # 更新历史记录显示
+        for query in self.search_history[:10]:
+            self.history_listbox.insert(tk.END, query)
+        
+        # 绑定双击事件
+        self.history_listbox.bind('<Double-1>', self.on_history_double_click)
+        
+        # 保存历史列表框引用
+        self.history_section = history_frame
+    
+    def on_history_double_click(self, event):
+        """历史记录双击事件"""
+        try:
+            selection = self.history_listbox.curselection()
+            if selection:
+                query = self.history_listbox.get(selection[0])
+                self.search_entry.delete(0, tk.END)
+                self.search_entry.insert(0, query)
+                self.perform_search()
+        except Exception as e:
+            print(f"历史记录点击处理失败: {e}")
+    
+    def open_data_manager(self):
+        """打开数据管理界面"""
+        try:
+            if os.path.exists("data_manager.py"):
+                subprocess.Popen([sys.executable, "data_manager.py"])
+            else:
+                messagebox.showerror("错误", "找不到数据管理程序！")
+        except Exception as e:
+            messagebox.showerror("错误", f"启动数据管理失败: {e}")
+    
+    def perform_search(self):
+        """执行搜索"""
+        query = self.search_entry.get().strip()
+        
+        if not query:
+            messagebox.showwarning("搜索提示", "请输入搜索关键词")
+            return
+        
+        try:
+            # 保存当前查询用于高亮显示
+            self.current_query = query
+            
+            # 执行搜索
+            self.search_results = self.info_db.search(query)
+            
+            # 添加到历史
+            self.add_to_history(query)
+            
+            # 显示结果
+            self.current_view = "results"
+            self.show_search_results()
+            
+        except Exception as e:
+            messagebox.showerror("搜索错误", f"搜索失败: {e}")
+    
+    def create_highlight_text(self, parent, text, font=None, bg="white", fg="#333", wraplength=800, height=None):
+        """创建带有关键词高亮的Text组件"""
+        import re
+        
+        # 创建Text组件
+        if height:
+            text_widget = tk.Text(parent, font=font or (self.font_family, 13), 
+                                 bg=bg, fg=fg, wrap=tk.WORD, height=height,
+                                 relief=tk.FLAT, bd=0, state=tk.NORMAL)
+        else:
+            text_widget = tk.Text(parent, font=font or (self.font_family, 13), 
+                                 bg=bg, fg=fg, wrap=tk.WORD,
+                                 relief=tk.FLAT, bd=0, state=tk.NORMAL)
+        
+        # 配置高亮标签
+        text_widget.tag_configure("highlight", background="#ffeb3b", foreground="#333")
+        
+        # 如果有搜索查询，进行高亮处理
+        if self.current_query and text:
+            # 分割查询词
+            query_words = [word.strip() for word in self.current_query.split() if word.strip()]
+            
+            # 插入文本并高亮关键词
+            current_pos = 0
+            text_lower = text.lower()
+            
+            # 找到所有匹配位置
+            matches = []
+            for word in query_words:
+                word_lower = word.lower()
+                start = 0
+                while True:
+                    pos = text_lower.find(word_lower, start)
+                    if pos == -1:
+                        break
+                    matches.append((pos, pos + len(word)))
+                    start = pos + 1
+            
+            # 按位置排序并合并重叠的匹配
+            matches.sort()
+            merged_matches = []
+            for start, end in matches:
+                if merged_matches and start <= merged_matches[-1][1]:
+                    # 合并重叠区间
+                    merged_matches[-1] = (merged_matches[-1][0], max(merged_matches[-1][1], end))
                 else:
-                    widget.yview_scroll(1, "units")
-            # 如果焦点在其他组件上，尝试滚动页面
-            else:
-                # 查找页面中的ScrolledText组件并滚动
-                for child in page_frame.winfo_children():
-                    if isinstance(child, scrolledtext.ScrolledText):
-                        if event.delta > 0:
-                            child.yview_scroll(-1, "units")
-                        else:
-                            child.yview_scroll(1, "units")
-                        break
-        except:
-            pass
-    
-    def on_page_mousewheel_linux(event):
-        """处理Linux系统的页面内容滚轮滚动事件"""
-        try:
-            # 获取当前焦点组件
-            widget = event.widget
+                    merged_matches.append((start, end))
             
-            # 如果焦点在ScrolledText组件上，使用其内置滚动
-            if isinstance(widget, scrolledtext.ScrolledText):
-                if event.num == 4:  # 向上滚动
-                    widget.yview_scroll(-1, "units")
-                elif event.num == 5:  # 向下滚动
-                    widget.yview_scroll(1, "units")
-            # 如果焦点在其他组件上，尝试滚动页面
+            # 插入文本并应用高亮
+            last_end = 0
+            for start, end in merged_matches:
+                # 插入高亮前的普通文本
+                if start > last_end:
+                    text_widget.insert(tk.END, text[last_end:start])
+                # 插入高亮文本
+                text_widget.insert(tk.END, text[start:end], "highlight")
+                last_end = end
+            
+            # 插入剩余的普通文本
+            if last_end < len(text):
+                text_widget.insert(tk.END, text[last_end:])
+        else:
+            # 没有搜索查询或文本为空，直接插入文本
+            text_widget.insert(tk.END, text or "")
+        
+        # 设置为只读
+        text_widget.config(state=tk.DISABLED)
+        
+        # 计算合适的高度
+        if not height:
+            text_widget.update_idletasks()
+            lines = text_widget.get("1.0", tk.END).count('\n') + 1
+            if wraplength and len(text or "") > 0:
+                # 估算换行后的行数
+                estimated_lines = max(lines, len(text or "") // (wraplength // 10))
+                text_widget.config(height=min(estimated_lines, 8))
             else:
-                # 查找页面中的ScrolledText组件并滚动
-                for child in page_frame.winfo_children():
-                    if isinstance(child, scrolledtext.ScrolledText):
-                        if event.num == 4:  # 向上滚动
-                            child.yview_scroll(-1, "units")
-                        elif event.num == 5:  # 向下滚动
-                            child.yview_scroll(1, "units")
+                text_widget.config(height=min(lines, 8))
+        
+        return text_widget
+    
+    def create_highlight_scrollable_text(self, parent, text, font=None, bg="white", fg="#333"):
+        """创建带有滚动条和关键词高亮的Text组件"""
+        import re
+        from tkinter import scrolledtext
+        
+        # 创建ScrolledText组件
+        text_widget = scrolledtext.ScrolledText(parent,
+                                              font=font or (self.font_family, 12),
+                                              bg=bg, fg=fg, wrap=tk.WORD,
+                                              relief=tk.FLAT, bd=0, state=tk.NORMAL)
+        
+        # 配置高亮标签
+        text_widget.tag_configure("highlight", background="#ffeb3b", foreground="#333")
+        
+        # 如果有搜索查询，进行高亮处理
+        if self.current_query and text:
+            # 分割查询词
+            query_words = [word.strip() for word in self.current_query.split() if word.strip()]
+            
+            # 插入文本并高亮关键词
+            text_lower = text.lower()
+            
+            # 找到所有匹配位置
+            matches = []
+            for word in query_words:
+                word_lower = word.lower()
+                start = 0
+                while True:
+                    pos = text_lower.find(word_lower, start)
+                    if pos == -1:
                         break
+                    matches.append((pos, pos + len(word)))
+                    start = pos + 1
+            
+            # 按位置排序并合并重叠的匹配
+            matches.sort()
+            merged_matches = []
+            for start, end in matches:
+                if merged_matches and start <= merged_matches[-1][1]:
+                    # 合并重叠区间
+                    merged_matches[-1] = (merged_matches[-1][0], max(merged_matches[-1][1], end))
+                else:
+                    merged_matches.append((start, end))
+            
+            # 插入文本并应用高亮
+            last_end = 0
+            for start, end in merged_matches:
+                # 插入高亮前的普通文本
+                if start > last_end:
+                    text_widget.insert(tk.END, text[last_end:start])
+                # 插入高亮文本
+                text_widget.insert(tk.END, text[start:end], "highlight")
+                last_end = end
+            
+            # 插入剩余的普通文本
+            if last_end < len(text):
+                text_widget.insert(tk.END, text[last_end:])
+        else:
+            # 没有搜索查询或文本为空，直接插入文本
+            text_widget.insert(tk.END, text or "")
+        
+        # 设置为只读
+        text_widget.config(state=tk.DISABLED)
+        
+        return text_widget
+    
+    def show_search_results(self):
+        """显示搜索结果"""
+        try:
+            # 隐藏主界面和内容页面
+            if hasattr(self, 'main_frame') and self.main_frame.winfo_exists():
+                self.main_frame.pack_forget()
+            if hasattr(self, 'page_frame') and self.page_frame and self.page_frame.winfo_exists():
+                self.page_frame.pack_forget()
+            
+            # 销毁旧的结果界面
+            if self.results_frame and self.results_frame.winfo_exists():
+                self.results_frame.destroy()
+            
+            # 创建结果界面
+            self.results_frame = tk.Frame(self.root, bg="white")
+            self.results_frame.pack(fill=tk.BOTH, expand=True)
+            
+            # 创建头部
+            header_frame = tk.Frame(self.results_frame, bg="white", height=80)
+            header_frame.pack(fill=tk.X, padx=20, pady=10)
+            header_frame.pack_propagate(False)
+            
+            # 返回按钮
+            back_button = tk.Button(header_frame, text="← 返回搜索",
+                                  font=(self.font_family, 12),
+                                  bg="#4285f4", fg="white",
+                                  relief=tk.FLAT, padx=15, pady=8,
+                                  command=self.show_main_search)
+            back_button.pack(side=tk.LEFT, pady=10)
+            
+            # 结果标题
+            title_label = tk.Label(header_frame,
+                                 text=f"搜索结果 ({len(self.search_results)} 条)",
+                                 font=(self.font_family, 18, "bold"),
+                                 bg="white", fg="#333")
+            title_label.pack(side=tk.LEFT, padx=(20, 0), pady=10)
+            
+            # 内容区域
+            content_frame = tk.Frame(self.results_frame, bg="white")
+            content_frame.pack(fill=tk.BOTH, expand=True, padx=20)
+            
+            if not self.search_results:
+                # 无结果提示
+                no_results_frame = tk.Frame(content_frame, bg="white")
+                no_results_frame.pack(expand=True, fill=tk.BOTH)
+                
+                tk.Label(no_results_frame, text="🔍",
+                        font=(self.font_family, 48),
+                        bg="white", fg="#ccc").pack(pady=(100, 20))
+                
+                tk.Label(no_results_frame, text="未找到匹配的结果",
+                        font=(self.font_family, 18, "bold"),
+                        bg="white", fg="#333").pack()
+                
+                suggestion_text = "建议:\\n• 尝试使用不同的关键词\\n• 检查拼写是否正确\\n• 尝试更简短的搜索词"
+                tk.Label(no_results_frame, text=suggestion_text,
+                        font=(self.font_family, 12),
+                        bg="white", fg="#666",
+                        justify=tk.LEFT).pack(pady=(20, 0))
+            else:
+                # 显示结果列表
+                self.create_results_list(content_frame)
+        
+        except Exception as e:
+            messagebox.showerror("界面错误", f"显示搜索结果失败: {e}")
+    
+    def create_results_list(self, parent):
+        """创建搜索结果列表"""
+        # 创建滚动区域
+        canvas = tk.Canvas(parent, bg="white", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+        scrollable_content = tk.Frame(canvas, bg="white")
+        
+        scrollable_content.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_content, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # 添加鼠标滚轮支持
+        def _on_mousewheel(event):
+            try:
+                # Windows和Linux的滚轮事件处理
+                if event.delta:
+                    canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+                else:
+                    # Linux系统的滚轮事件
+                    if event.num == 4:
+                        canvas.yview_scroll(-1, "units")
+                    elif event.num == 5:
+                        canvas.yview_scroll(1, "units")
+            except Exception as e:
+                print(f"滚轮事件处理失败: {e}")
+        
+        # 绑定滚轮事件的递归函数
+        def bind_mousewheel(widget):
+            """递归绑定滚轮事件到所有子组件"""
+            try:
+                widget.bind("<MouseWheel>", _on_mousewheel)
+                widget.bind("<Button-4>", _on_mousewheel)  
+                widget.bind("<Button-5>", _on_mousewheel)
+                for child in widget.winfo_children():
+                    bind_mousewheel(child)
+            except Exception as e:
+                print(f"绑定滚轮事件失败: {e}")
+        
+        # 绑定滚轮事件到所有相关组件
+        bind_mousewheel(canvas)
+        bind_mousewheel(scrollable_content)
+        bind_mousewheel(parent)
+        
+        # 绑定鼠标进入和离开事件来设置焦点
+        def on_enter(event):
+            canvas.focus_set()
+            
+        canvas.bind("<Enter>", on_enter)
+        scrollable_content.bind("<Enter>", on_enter)
+        
+        # 布局滚动组件
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # 显示搜索结果
+        for i, result in enumerate(self.search_results):
+            self.create_result_item(scrollable_content, result, i)
+        
+        # 最后再次绑定滚轮事件到所有新创建的组件
+        bind_mousewheel(scrollable_content)
+            
+        # 保存canvas引用用于后续操作
+        self.results_canvas = canvas
+    
+    def create_result_item(self, parent, result, index):
+        """创建单个搜索结果项"""
+        try:
+            # 结果项容器
+            result_item = tk.Frame(parent, bg="white")
+            result_item.pack(fill=tk.X, padx=20, pady=15)
+            
+            # 标题 - 使用高亮文本组件，但保持可点击性
+            title_text = self.create_highlight_text(
+                result_item, result['title'],
+                font=(self.font_family, 16, "bold"),
+                bg="white", fg="#1a0dab",
+                height=1
+            )
+            title_text.pack(anchor=tk.W, fill=tk.X)
+            title_text.config(cursor="hand2", state=tk.NORMAL)
+            title_text.bind("<Button-1>", lambda e, r=result: self.show_content_page(r))
+            # 添加下划线效果
+            title_text.tag_configure("underline", underline=True)
+            title_text.tag_add("underline", "1.0", "end-1c")
+            title_text.config(state=tk.DISABLED)
+            
+            # URL
+            if result.get('url'):
+                url_label = tk.Label(result_item, text=result['url'],
+                                   font=(self.font_family, 12),
+                                   bg="white", fg="#006621",
+                                   anchor="w")
+                url_label.pack(anchor=tk.W, pady=(2, 0))
+            
+            # 内容摘要 - 使用高亮文本组件
+            content_preview = (result['content'][:200] + "..."
+                             if len(result['content']) > 200
+                             else result['content'])
+            content_text = self.create_highlight_text(
+                result_item, content_preview,
+                font=(self.font_family, 13),
+                bg="white", fg="#545454",
+                wraplength=800,
+                height=3
+            )
+            content_text.pack(anchor=tk.W, fill=tk.X, pady=(5, 0))
+            
+            # 标签
+            if result.get('tags'):
+                tags_text = "标签: " + ", ".join(result['tags'][:5])
+                tags_label = tk.Label(result_item, text=tags_text,
+                                     font=(self.font_family, 11),
+                                     bg="white", fg="#808080",
+                                     anchor="w")
+                tags_label.pack(anchor=tk.W, pady=(5, 0))
+            
+            # 分隔线
+            separator = tk.Frame(parent, height=1, bg="#e8e8e8")
+            separator.pack(fill=tk.X, padx=20, pady=(10, 0))
+            
+        except Exception as e:
+            print(f"创建搜索结果项失败: {e}")
+    
+    def show_content_page(self, result_data):
+        """显示内容详情页面"""
+        try:
+            self.current_page_data = result_data
+            self.current_view = "page"
+            
+            # 隐藏结果界面（安全检查）
+            if hasattr(self, 'results_frame') and self.results_frame and self.results_frame.winfo_exists():
+                self.results_frame.pack_forget()
+            
+            # 销毁旧的内容页面
+            if self.page_frame:
+                self.page_frame.destroy()
+            
+            # 创建内容页面
+            self.page_frame = tk.Frame(self.root, bg="white")
+            self.page_frame.pack(fill=tk.BOTH, expand=True)
+            
+            # 创建头部
+            header_frame = tk.Frame(self.page_frame, bg="white", height=60)
+            header_frame.pack(fill=tk.X, padx=20, pady=10)
+            header_frame.pack_propagate(False)
+            
+            # 返回按钮
+            back_button = tk.Button(header_frame, text="← 返回结果",
+                                  font=(self.font_family, 12),
+                                  bg="#4285f4", fg="white",
+                                  relief=tk.FLAT, padx=15, pady=8,
+                                  command=self.show_search_results)
+            back_button.pack(side=tk.LEFT, pady=10)
+            
+            # 页面标题
+            title_label = tk.Label(header_frame,
+                                 text=result_data.get('title', '无标题'),
+                                 font=(self.font_family, 18, "bold"),
+                                 bg="white", fg="#333")
+            title_label.pack(side=tk.LEFT, padx=(20, 0), pady=10)
+            
+            # 内容区域
+            content_frame = tk.Frame(self.page_frame, bg="white")
+            content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 20))
+            
+            # 使用自定义的高亮文本区域
+            content = self.format_content_for_display(result_data)
+            text_area = self.create_highlight_scrollable_text(
+                content_frame, content,
+                font=(self.font_family, 12),
+                bg="white", fg="#333"
+            )
+            text_area.pack(fill=tk.BOTH, expand=True)
+            
+        except Exception as e:
+            messagebox.showerror("页面错误", f"显示内容页面失败: {e}")
+    
+    def format_content_for_display(self, result):
+        """格式化内容用于显示"""
+        content_lines = []
+        
+        # 标题
+        content_lines.append(f"标题: {result.get('title', '无标题')}")
+        content_lines.append("=" * 50)
+        content_lines.append("")
+        
+        # URL
+        if result.get('url'):
+            content_lines.append(f"链接: {result['url']}")
+            content_lines.append("")
+        
+        # 标签
+        if result.get('tags'):
+            content_lines.append(f"标签: {', '.join(result['tags'])}")
+            content_lines.append("")
+        
+        # 时间信息
+        if result.get('created_at'):
+            content_lines.append(f"创建时间: {result['created_at']}")
+        if result.get('updated_at'):
+            content_lines.append(f"更新时间: {result['updated_at']}")
+        if result.get('created_at') or result.get('updated_at'):
+            content_lines.append("")
+        
+        # 内容
+        content_lines.append("内容:")
+        content_lines.append("-" * 50)
+        content_lines.append(result.get('content', '无内容'))
+        
+        return "\n".join(content_lines)
+    
+    def show_main_search(self):
+        """显示主搜索界面"""
+        try:
+            # 隐藏其他界面（安全检查）
+            if hasattr(self, 'results_frame') and self.results_frame and self.results_frame.winfo_exists():
+                self.results_frame.pack_forget()
+            if hasattr(self, 'page_frame') and self.page_frame and self.page_frame.winfo_exists():
+                self.page_frame.pack_forget()
+            
+            # 确保主界面存在且可见
+            if hasattr(self, 'main_frame') and self.main_frame.winfo_exists():
+                self.main_frame.pack(fill=tk.BOTH, expand=True)
+            else:
+                # 如果主界面被意外销毁，重新创建
+                self.setup_main_search()
+            
+            # 重置状态
+            self.current_view = "search"
+            
+            # 聚焦搜索框（安全检查）
+            if hasattr(self, 'search_entry') and self.search_entry.winfo_exists():
+                self.search_entry.focus()
+            
+            # 刷新搜索历史显示
+            self.refresh_history_display()
+            
+        except Exception as e:
+            messagebox.showerror("界面错误", f"显示主搜索界面失败: {e}")
+    
+    def refresh_history_display(self):
+        """刷新搜索历史显示"""
+        try:
+            # 如果历史区域存在，更新显示
+            if hasattr(self, 'history_listbox') and self.history_listbox.winfo_exists():
+                self.history_listbox.delete(0, tk.END)
+                for query in self.search_history[:10]:
+                    self.history_listbox.insert(tk.END, query)
+        except Exception as e:
+            print(f"刷新历史显示失败: {e}")
+    
+    def run(self):
+        """启动应用程序"""
+        try:
+            if self.root:
+                self.root.mainloop()
+        except KeyboardInterrupt:
+            print("\\n用户中断程序")
+        except Exception as e:
+            print(f"应用程序运行失败: {e}")
+        finally:
+            # 保存搜索历史
+            self.save_simple_history()
+
+def main():
+    """主函数"""
+    try:
+        app = SimpleGoogleApp()
+        app.run()
+    except FileNotFoundError as e:
+        error_msg = f"文件路径错误: {e}"
+        print(error_msg)
+        print("可能的原因：")
+        print("1. 文件路径包含特殊字符或中文")
+        print("2. 文件被移动或删除")
+        print("3. 权限不足")
+        try:
+            messagebox.showerror("文件路径错误", error_msg)
         except:
             pass
-    
-    # 绑定滚轮事件到页面框架（Windows/Mac）
-    page_frame.bind("<MouseWheel>", on_page_mousewheel)
-    
-    # 绑定滚轮事件到页面框架（Linux）
-    page_frame.bind("<Button-4>", on_page_mousewheel_linux)
-    page_frame.bind("<Button-5>", on_page_mousewheel_linux)
-    
-    # 绑定滚轮事件到根窗口，确保全局滚轮支持
-    root.bind("<MouseWheel>", on_page_mousewheel)
-    root.bind("<Button-4>", on_page_mousewheel_linux)
-    root.bind("<Button-5>", on_page_mousewheel_linux)
-    
-    # 为所有子组件绑定滚轮事件
-    def bind_mousewheel_recursive(widget):
-        """递归绑定滚轮事件到所有子组件"""
-        widget.bind("<MouseWheel>", on_page_mousewheel)
-        widget.bind("<Button-4>", on_page_mousewheel_linux)
-        widget.bind("<Button-5>", on_page_mousewheel_linux)
-        for child in widget.winfo_children():
-            bind_mousewheel_recursive(child)
-    
-    # 绑定所有子组件的滚轮事件
-    bind_mousewheel_recursive(page_frame)
-
-def open_url(url):
-    """打开URL链接"""
-    import webbrowser
-    try:
-        webbrowser.open(url)
     except Exception as e:
-        messagebox.showerror("错误", f"无法打开链接: {e}")
-    
-    current_view = "page"
+        error_msg = f"程序启动失败: {e}"
+        print(error_msg)
+        print("详细错误信息:")
+        print(traceback.format_exc())
+        try:
+            messagebox.showerror("启动错误", error_msg)
+        except:
+            pass
 
-def show_main_search():
-    """显示主搜索界面"""
-    global current_view
-    
-    # 销毁其他界面
-    for widget in root.winfo_children():
-        if isinstance(widget, tk.Frame) and widget != main_frame:
-            widget.destroy()
-    
-    # 显示主搜索界面
-    main_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-    current_view = "search"
-
-def on_search_key(event):
-    """处理搜索框按键事件"""
-    if event.keysym == "Return":
-        perform_search()
-
-'''
-创建主窗口root
-设置窗口标题
-设置窗口大小
-设置窗口背景色
-'''
-root = tk.Tk()
-root.title("Google UI Mockup - 本地信息库搜索")
-root.geometry("1400x900")
-root.configure(bg="#f5f5f5")
-root.minsize(1200, 700)  # 设置最小窗口大小
-
-'''
-创建一个顶部栏top_bar 背景色和主窗口一致 设置高度
-用pack布局 横向填满顶部
-'''
-#top_bar = tk.Frame(root, bg="#f5f5f5", height=60)
-#top_bar.pack(fill=tk.X, side=tk.TOP)
-
-'''
-在顶部栏放一个标签 显示“浏览器界面”
-背景色浅灰 文字颜色灰色 字体用自动选择的中文字体 设置字号
-用 place 布局 定位在 (20, 20)
-'''
-#browser_label = tk.Label(top_bar, text="浏览器界面", bg="#f5f5f5", fg="#bdbdbd", font=(font_family, 10))
-#browser_label.place(x=20, y=20)
-
-
-'''
-创建主内容区 main_frame 背景白色 宽 1150 高 700
-用 place 布局 居中显示在窗口的 50% 高度处
-'''
-main_frame = tk.Frame(root, bg="white", width=1150, height=700)
-main_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-
-'''
-在主内容区左上角创建一个小框 arrow_frame 用于放箭头
-箭头标签 arrow_label 显示 "»"，字体加粗，字号 16 颜色深灰
-用 pack 布局 箭头有内边距
-'''
-#arrow_frame = tk.Frame(main_frame, bg="white", width=30, height=40)
-#arrow_frame.place(x=0, y=30)
-#arrow_label = tk.Label(arrow_frame, text="»", bg="white", fg="#444", font=(font_family, 16, "bold"))
-#arrow_label.pack(padx=5, pady=5)
-
-# logo图片
-'''
-打开并缩放 Google logo 图片为 300x100
-转换为 Tkinter 可用的图片对象
-创建标签 logo_label 显示 logo 图片 背景白色
-用 place 布局 居中显示在主内容区的 45% 高度处
-logo_label.image = logo 这行是为了防止图片被垃圾回收导致不显示
-'''
-logo_img = Image.open("google_logo.png").resize((300, 100))
-logo = ImageTk.PhotoImage(logo_img)
-logo_label = tk.Label(main_frame, image=logo, bg="white")
-logo_label.image = logo
-logo_label.place(relx=0.5, rely=0.45, anchor=tk.CENTER)
-
-# 搜索框（带图片icon和边框）
-'''
-在主内容区创建一个搜索框外层 search_frame 背景白色
-用 place 居中显示在主内容区的 62% 高度处
-'''
-search_frame = tk.Frame(main_frame, bg="white")
-search_frame.place(relx=0.5, rely=0.62, anchor=tk.CENTER)
-
-# 搜索框外层Frame用于显示边框
-'''
-在搜索框外层再嵌套一个 search_border 用于显示边框
-边框颜色为浅灰色  宽度 1  样式为实线
-'''
-search_border = tk.Frame(search_frame, bg="#dadce0", bd=1, relief=tk.SOLID)
-search_border.pack()
-
-# 搜索icon图片
-'''
-打开并缩放搜索图标图片为 28x28
-转换为 Tkinter 可用的图片对象
-创建标签 icon_label 显示搜索图标 背景白色
-用 pack 布局 左侧显示 左右有内边距
-'''
-icon_img = Image.open("search_bar_1.png").resize((28, 28))
-icon = ImageTk.PhotoImage(icon_img)
-icon_label = tk.Label(search_border, image=icon, bg="white")
-icon_label.image = icon
-icon_label.pack(side=tk.LEFT, padx=(10, 5))
-
-# 输入框
-'''
-创建输入框 search_entry 字体用自动选择的中文字体 字号 16
-无边框 样式为平面
-宽度 40 个字符 文字颜色深灰 背景白色
-用 pack 布局 左侧显示 垂直内边距 10 右侧内边距 10
-绑定回车键事件
-'''
-search_entry = tk.Entry(search_border, font=(font_family, 16), bd=0, relief=tk.FLAT, width=40, fg="#444", bg="white")
-search_entry.pack(side=tk.LEFT, ipady=10, padx=(0, 10))
-search_entry.bind("<KeyPress>", on_search_key)
-
-# 搜索按钮
-search_button = tk.Button(search_border, text="搜索", 
-                         font=(font_family, 14), bg="#4285f4", fg="white",
-                         command=perform_search, relief=tk.FLAT, bd=0)
-search_button.pack(side=tk.RIGHT, padx=(0, 10), pady=5)
-
-# 管理按钮（在主内容区右上角）
-def open_data_manager():
-    """打开数据管理界面"""
-    import subprocess
-    import sys
-    try:
-        subprocess.Popen([sys.executable, "data_manager.py"])
-    except Exception as e:
-        print(f"无法打开数据管理界面: {e}")
-
-manage_button = tk.Button(main_frame, text="数据管理", 
-                         font=(font_family, 12), bg="#34a853", fg="white",
-                         command=open_data_manager, relief=tk.FLAT, bd=0)
-manage_button.place(x=1050, y=20)
-
-'''
-启动 Tkinter 主事件循环 窗口开始响应用户操作
-'''
-root.mainloop()
+if __name__ == "__main__":
+    main()
