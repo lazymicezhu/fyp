@@ -3,7 +3,8 @@
     "allow": [
       "Bash(python:*)",
       "Bash(dir)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(pip install:*)"
     ],
     "deny": [],
     "ask": []

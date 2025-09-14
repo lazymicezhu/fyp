@@ -8,6 +8,7 @@
 
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
+import customtkinter as ctk
 import os
 import json
 import platform
@@ -39,6 +40,10 @@ class SimpleGoogleApp:
     
     def __init__(self):
         """初始化应用"""
+        # 设置 CustomTkinter 外观
+        ctk.set_appearance_mode("auto")  # "auto", "dark", "light"
+        ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
+        
         # 设置字体
         if platform.system() == "Windows":
             self.font_family = "Microsoft YaHei"
@@ -103,11 +108,13 @@ class SimpleGoogleApp:
     def setup_ui(self):
         """设置用户界面"""
         try:
-            # 创建主窗口
-            self.root = tk.Tk()
-            self.root.title("Google搜索 - 简化版")
-            self.root.geometry("1024x768")
-            self.root.configure(bg="white")
+            # 创建主窗口 - 使用 CustomTkinter
+            self.root = ctk.CTk()
+            self.root.title("🔍 Google搜索 - 现代版")
+            self.root.geometry("1200x900")
+            
+            # 设置最小窗口尺寸
+            self.root.minsize(1000, 700)
             
             # 居中窗口
             self.center_window()
@@ -135,12 +142,12 @@ class SimpleGoogleApp:
     def setup_main_search(self):
         """设置主搜索界面"""
         # 创建主框架
-        self.main_frame = tk.Frame(self.root, bg="white")
-        self.main_frame.pack(fill=tk.BOTH, expand=True)
+        self.main_frame = ctk.CTkFrame(self.root, fg_color="transparent")
+        self.main_frame.pack(fill=tk.BOTH, expand=True, padx=40, pady=40)
         
         # Logo区域
-        logo_frame = tk.Frame(self.main_frame, bg="white")
-        logo_frame.pack(pady=(80, 30))
+        logo_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        logo_frame.pack(pady=(60, 40))
         
         # 尝试加载logo图片，加强路径和错误处理
         logo_loaded = False
@@ -156,9 +163,10 @@ class SimpleGoogleApp:
                 try:
                     if os.path.exists(logo_path) and os.path.isfile(logo_path):
                         img = Image.open(logo_path)
-                        img = img.resize((300, 100), Image.Resampling.LANCZOS)
+                        img = img.resize((320, 110), Image.Resampling.LANCZOS)  # 稍大一些的logo
                         self.google_logo = ImageTk.PhotoImage(img)
-                        logo_label = tk.Label(logo_frame, image=self.google_logo, bg="white")
+                        # 使用CTkLabel显示图片
+                        logo_label = ctk.CTkLabel(logo_frame, image=self.google_logo, text="")
                         logo_label.pack()
                         logo_loaded = True
                         break
@@ -167,32 +175,27 @@ class SimpleGoogleApp:
                     continue
         
         if not logo_loaded:
-            # 使用文字logo
-            logo_label = tk.Label(logo_frame, text="Google",
-                                font=(self.font_family, 36, "bold"),
-                                bg="white", fg="#4285f4")
+            # 使用现代化的文字logo作为后备
+            logo_label = ctk.CTkLabel(logo_frame, text="🔍 Google",
+                                     font=ctk.CTkFont(family=self.font_family, size=48, weight="bold"))
             logo_label.pack()
         
         # 副标题
-        subtitle = tk.Label(logo_frame, text="信息库搜索系统",
-                          font=(self.font_family, 14),
-                          bg="white", fg="#666")
+        subtitle = ctk.CTkLabel(logo_frame, text="✨ 信息库搜索系统",
+                               font=ctk.CTkFont(family=self.font_family, size=16))
         subtitle.pack(pady=(10, 0))
         
         # 搜索框区域
-        search_frame = tk.Frame(self.main_frame, bg="white")
-        search_frame.pack(pady=(0, 20))
-        
-        # 搜索输入框容器
-        search_container = tk.Frame(search_frame, bg="#f8f9fa", relief=tk.SOLID, bd=1)
-        search_container.pack()
+        search_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        search_frame.pack(pady=(0, 30))
         
         # 搜索输入框
-        self.search_entry = tk.Entry(search_container,
-                                   font=(self.font_family, 16),
-                                   width=50, relief=tk.FLAT, bd=10,
-                                   bg="#f8f9fa")
-        self.search_entry.pack(padx=15, pady=12)
+        self.search_entry = ctk.CTkEntry(search_frame,
+                                        font=ctk.CTkFont(family=self.font_family, size=16),
+                                        width=500, height=50,
+                                        corner_radius=25,
+                                        placeholder_text="🔍 搜索你的信息库...")
+        self.search_entry.pack(padx=20, pady=15)
         self.search_entry.focus()
         
         # 绑定事件
@@ -203,55 +206,78 @@ class SimpleGoogleApp:
             self.create_history_section()
         
         # 按钮区域
-        buttons_frame = tk.Frame(self.main_frame, bg="white")
+        buttons_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
         buttons_frame.pack(pady=(20, 40))
         
         # 搜索按钮
-        search_button = tk.Button(buttons_frame, text="搜索",
-                                font=(self.font_family, 13),
-                                bg="#f8f9fa", fg="#333",
-                                relief=tk.FLAT, bd=1,
-                                padx=20, pady=8,
-                                command=self.perform_search)
-        search_button.pack(side=tk.LEFT, padx=(0, 10))
+        search_button = ctk.CTkButton(buttons_frame, text="🔍 搜索",
+                                     font=ctk.CTkFont(family=self.font_family, size=14, weight="bold"),
+                                     width=120, height=40, corner_radius=20,
+                                     command=self.perform_search)
+        search_button.pack(side=tk.LEFT, padx=(0, 15))
         
         # 数据管理按钮
-        manage_button = tk.Button(buttons_frame, text="数据管理",
-                                font=(self.font_family, 13),
-                                bg="#f8f9fa", fg="#333",
-                                relief=tk.FLAT, bd=1,
-                                padx=20, pady=8,
-                                command=self.open_data_manager)
-        manage_button.pack(side=tk.LEFT)
+        manage_button = ctk.CTkButton(buttons_frame, text="📝 数据管理",
+                                     font=ctk.CTkFont(family=self.font_family, size=14, weight="bold"),
+                                     width=120, height=40, corner_radius=20,
+                                     fg_color="#2fa572", hover_color="#106A43",
+                                     command=self.open_data_manager)
+        manage_button.pack(side=tk.LEFT, padx=(0, 15))
+        
+        # 外观切换按钮
+        appearance_button = ctk.CTkButton(buttons_frame, text="🎨 切换外观",
+                                         font=ctk.CTkFont(family=self.font_family, size=14, weight="bold"),
+                                         width=120, height=40, corner_radius=20,
+                                         fg_color="#ff9500", hover_color="#cc7700",
+                                         command=self.toggle_appearance)
+        appearance_button.pack(side=tk.LEFT)
+    
+    def toggle_appearance(self):
+        """切换外观模式"""
+        current = ctk.get_appearance_mode()
+        if current == "Dark":
+            ctk.set_appearance_mode("Light")
+        else:
+            ctk.set_appearance_mode("Dark")
     
     def create_history_section(self):
         """创建搜索历史区域"""
         if not self.search_history:
             return
         
-        history_frame = tk.Frame(self.main_frame, bg="white")
-        history_frame.pack(pady=(10, 20))
+        history_frame = ctk.CTkFrame(self.main_frame, corner_radius=15)
+        history_frame.pack(pady=(10, 20), padx=50, fill=tk.X)
         
-        history_title = tk.Label(history_frame, text="搜索历史",
-                               font=(self.font_family, 12, "bold"),
-                               bg="white", fg="#666")
-        history_title.pack()
+        history_title = ctk.CTkLabel(history_frame, text="📝 最近搜索",
+                                    font=ctk.CTkFont(family=self.font_family, size=16, weight="bold"))
+        history_title.pack(pady=(15, 10))
         
-        # 历史记录列表
-        self.history_listbox = tk.Listbox(history_frame,
-                                        font=(self.font_family, 10),
-                                        height=5, width=60)
-        self.history_listbox.pack(pady=(5, 0))
+        # 创建历史记录按钮
+        history_buttons_frame = ctk.CTkFrame(history_frame, fg_color="transparent")
+        history_buttons_frame.pack(pady=(0, 15), padx=20, fill=tk.X)
         
-        # 更新历史记录显示
-        for query in self.search_history[:10]:
-            self.history_listbox.insert(tk.END, query)
+        # 显示最近5次搜索记录
+        for i, query in enumerate(self.search_history[:5]):
+            if i < 3:  # 前三个显示在一行
+                history_btn = ctk.CTkButton(history_buttons_frame, text=f"🔍 {query}",
+                                           font=ctk.CTkFont(family=self.font_family, size=12),
+                                           height=30, corner_radius=15,
+                                           fg_color="transparent", 
+                                           text_color=("gray10", "gray90"),  # 明色模式用深色文字，暗色模式用浅色文字
+                                           hover_color=("gray75", "gray25"),
+                                           border_width=1,
+                                           border_color=("gray40", "gray60"),  # 边框颜色也设置明显一些
+                                           command=lambda q=query: self.use_history_query(q))
+                history_btn.pack(side=tk.LEFT, padx=5, pady=2, expand=True, fill=tk.X)
         
-        # 绑定双击事件
-        self.history_listbox.bind('<Double-1>', self.on_history_double_click)
-        
-        # 保存历史列表框引用
+        # 保存历史区域引用
         self.history_section = history_frame
+    
+    def use_history_query(self, query):
+        """使用历史查询"""
+        self.search_entry.delete(0, tk.END)
+        self.search_entry.insert(0, query)
+        self.perform_search()
     
     def on_history_double_click(self, event):
         """历史记录双击事件"""

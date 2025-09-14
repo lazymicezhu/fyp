@@ -8,6 +8,7 @@
 
 import tkinter as tk
 from tkinter import messagebox
+import customtkinter as ctk
 import platform
 import subprocess
 import sys
@@ -16,6 +17,10 @@ import os
 # 导入新增的配置和异常处理模块
 from config import config
 from exceptions import safe_execute, UIError, error_handler
+
+# 设置 CustomTkinter 外观
+ctk.set_appearance_mode("auto")  # "auto", "dark", "light"
+ctk.set_default_color_theme("blue")  # "blue", "green", "dark-blue"
 
 class LauncherGUI:
     """
@@ -47,16 +52,14 @@ class LauncherGUI:
     def setup_main_window(self):
         """
         设置主窗口
-        创建Tkinter根窗口，设置标题、大小、背景色等基本属性
+        创建CustomTkinter根窗口，设置标题、大小等基本属性
         """
-        # 创建Tkinter根窗口实例
-        self.root = tk.Tk()
+        # 创建CustomTkinter根窗口实例
+        self.root = ctk.CTk()
         # 设置窗口标题，包含项目名称
         self.root.title("信息库系统启动器 - Lazymice Project")
-        # 设置窗口初始大小为500x630像素
-        self.root.geometry("500x630")
-        # 设置窗口背景色为浅灰色
-        self.root.configure(bg="#f5f5f5")
+        # 设置窗口初始大小为550x650像素
+        self.root.geometry("550x650")
         # 允许窗口调整大小
         self.root.resizable(True, True)
         # 设置最小窗口大小为500x400像素，防止界面过小
@@ -87,85 +90,85 @@ class LauncherGUI:
         创建主界面的所有组件，包括标题、按钮等
         """
         # 创建主框架
-        # 背景色为浅灰色，填充整个窗口并扩展
-        main_frame = tk.Frame(self.root, bg="#f5f5f5")
-        # 使用pack布局，填充整个窗口，左右边距40像素，上下边距40像素
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=40, pady=40)
+        main_frame = ctk.CTkFrame(self.root, corner_radius=20)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=30, pady=30)
         
         # 创建主标题标签
-        # 显示"信息库系统"，使用24号加粗字体，深灰色文字
-        title_label = tk.Label(main_frame, text="信息库系统", 
-                              font=(self.font_family, 24, "bold"), 
-                              bg="#f5f5f5", fg="#333")
-        # 使用pack布局，上下边距(0, 30)像素
-        title_label.pack(pady=(0, 30))
+        title_label = ctk.CTkLabel(main_frame, text="信息库系统", 
+                                  font=ctk.CTkFont(family=self.font_family, size=28, weight="bold"))
+        title_label.pack(pady=(30, 10))
         
         # 创建副标题标签
-        # 显示项目描述，使用12号字体，深灰色文字
-        subtitle_label = tk.Label(main_frame, text="Lazymice Project - 本地信息库搜索系统", 
-                                 font=(self.font_family, 12), 
-                                 bg="#f5f5f5", fg="#666")
-        # 使用pack布局，上下边距(0, 40)像素
+        subtitle_label = ctk.CTkLabel(main_frame, text="Lazymice Project - 本地信息库搜索系统", 
+                                     font=ctk.CTkFont(family=self.font_family, size=14))
         subtitle_label.pack(pady=(0, 40))
         
         # 创建按钮框架
-        # 用于放置功能按钮的框架
-        button_frame = tk.Frame(main_frame, bg="#f5f5f5")
-        # 水平填充
-        button_frame.pack(fill=tk.X)
+        button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        button_frame.pack(fill=tk.X, padx=30)
         
         # 创建搜索界面按钮
-        # 显示"仿Google检索界面"，使用蓝色背景和白色文字
-        search_button = tk.Button(button_frame, text="仿Google检索界面", 
-                                  font=(self.font_family, 14), bg="#4285f4", fg="white",
-                                  command=self.open_search_interface, 
-                                  relief=tk.FLAT, bd=0, height=2)
-        # 水平填充，上下边距(0, 15)像素
+        search_button = ctk.CTkButton(button_frame, text="仿Google检索界面", 
+                                     font=ctk.CTkFont(family=self.font_family, size=16, weight="bold"),
+                                     height=50, corner_radius=12,
+                                     command=self.open_search_interface)
         search_button.pack(fill=tk.X, pady=(0, 15))
         
         # 创建数据管理按钮
-        # 显示"打开数据管理"，使用绿色背景和白色文字
-        manage_button = tk.Button(button_frame, text="打开数据管理", 
-                                 font=(self.font_family, 14), bg="#34a853", fg="white",
-                                 command=self.open_data_manager, 
-                                 relief=tk.FLAT, bd=0, height=2)
-        # 水平填充，上下边距(0, 15)像素
+        manage_button = ctk.CTkButton(button_frame, text="打开数据管理", 
+                                     font=ctk.CTkFont(family=self.font_family, size=16, weight="bold"),
+                                     height=50, corner_radius=12,
+                                     fg_color="#2fa572", hover_color="#106A43",
+                                     command=self.open_data_manager)
         manage_button.pack(fill=tk.X, pady=(0, 15))
         
         # 创建帮助按钮
-        # 显示"使用帮助"，使用黄色背景和黑色文字
-        help_button = tk.Button(button_frame, text="使用帮助", 
-                               font=(self.font_family, 14), bg="#fbbc04", fg="black",
-                               command=self.show_help, 
-                               relief=tk.FLAT, bd=0, height=2)
-        # 水平填充，上下边距(0, 15)像素
+        help_button = ctk.CTkButton(button_frame, text="使用帮助", 
+                                   font=ctk.CTkFont(family=self.font_family, size=16, weight="bold"),
+                                   height=50, corner_radius=12,
+                                   fg_color="#ff9500", hover_color="#cc7700",
+                                   command=self.show_help)
         help_button.pack(fill=tk.X, pady=(0, 15))
         
+        # 创建外观切换按钮
+        appearance_frame = ctk.CTkFrame(button_frame, fg_color="transparent")
+        appearance_frame.pack(fill=tk.X, pady=(10, 15))
+        
+        appearance_label = ctk.CTkLabel(appearance_frame, text="外观模式:", 
+                                       font=ctk.CTkFont(family=self.font_family, size=14))
+        appearance_label.pack(side=tk.LEFT, padx=(0, 10))
+        
+        self.appearance_mode = ctk.CTkOptionMenu(appearance_frame,
+                                               values=["auto", "light", "dark"],
+                                               command=self.change_appearance_mode,
+                                               font=ctk.CTkFont(family=self.font_family, size=12),
+                                               width=120, height=32)
+        self.appearance_mode.set("auto")
+        self.appearance_mode.pack(side=tk.LEFT)
+        
         # 创建退出按钮
-        # 显示"退出"，使用红色背景和白色文字
-        exit_button = tk.Button(button_frame, text="退出", 
-                              font=(self.font_family, 14), bg="#ea4335", fg="white",
-                              command=self.root.quit, 
-                              relief=tk.FLAT, bd=0, height=2)
-        # 水平填充
+        exit_button = ctk.CTkButton(button_frame, text="❌ 退出", 
+                                   font=ctk.CTkFont(family=self.font_family, size=16, weight="bold"),
+                                   height=50, corner_radius=12,
+                                   fg_color="#dc2626", hover_color="#991b1b",
+                                   command=self.root.quit)
         exit_button.pack(fill=tk.X)
         
         # 创建状态信息区域
-        # 用于显示系统状态信息的框架
-        status_frame = tk.Frame(main_frame, bg="#f5f5f5")
-        # 水平填充，上下边距(30, 0)像素
-        status_frame.pack(fill=tk.X, pady=(30, 0))
+        status_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        status_frame.pack(fill=tk.X, pady=(30, 20), padx=30)
         
         # 创建状态标签
-        # 显示系统状态信息，使用10号字体，深灰色文字
-        self.status_label = tk.Label(status_frame, text="", 
-                                    font=(self.font_family, 10), 
-                                    bg="#f5f5f5", fg="#888")
-        # 使用pack布局
+        self.status_label = ctk.CTkLabel(status_frame, text="", 
+                                        font=ctk.CTkFont(family=self.font_family, size=12))
         self.status_label.pack()
         
         # 更新状态信息
         self.update_status()
+    
+    def change_appearance_mode(self, new_appearance_mode):
+        """改变外观模式"""
+        ctk.set_appearance_mode(new_appearance_mode)
     
     @safe_execute(UIError, show_user_error=True)
     def open_search_interface(self):
@@ -178,13 +181,13 @@ class LauncherGUI:
             # 优先使用改进版本的google.py（已修复路径问题和添加滚轮滑动）
             if os.path.exists("google.py"):
                 subprocess.Popen([sys.executable, "google.py"])
-                self.status_label.config(text="✅ 搜索界面已启动 (改进版本)")
+                self.status_label.configure(text="✅ 搜索界面已启动 (改进版本)")
             elif os.path.exists("google_simple.py"):
                 subprocess.Popen([sys.executable, "google_simple.py"])
-                self.status_label.config(text="✅ 搜索界面已启动 (简化版本)")
+                self.status_label.configure(text="✅ 搜索界面已启动 (简化版本)")
             elif os.path.exists("google_refactored.py"):
                 subprocess.Popen([sys.executable, "google_refactored.py"])
-                self.status_label.config(text="✅ 搜索界面已启动 (重构版本)")
+                self.status_label.configure(text="✅ 搜索界面已启动 (重构版本)")
             else:
                 raise UIError("未找到搜索界面文件", component="launcher", action="open_search")
         except subprocess.SubprocessError as e:
@@ -202,7 +205,7 @@ class LauncherGUI:
         try:
             if os.path.exists("data_manager.py"):
                 subprocess.Popen([sys.executable, "data_manager.py"])
-                self.status_label.config(text="✅ 数据管理界面已启动")
+                self.status_label.configure(text="✅ 数据管理界面已启动")
             else:
                 raise UIError("未找到数据管理文件", component="launcher", action="open_data_manager")
         except subprocess.SubprocessError as e:
@@ -243,24 +246,32 @@ class LauncherGUI:
 - information_database.json: 数据存储文件
         """
         
-        help_window = tk.Toplevel(self.root)
+        help_window = ctk.CTkToplevel(self.root)
         help_window.title("使用帮助")
-        help_window.geometry("600x500")
-        help_window.configure(bg="#f5f5f5")
+        help_window.geometry("650x550")
         
         # 居中显示帮助窗口
         help_window.update_idletasks()
-        x = (help_window.winfo_screenwidth() // 2) - (600 // 2)
-        y = (help_window.winfo_screenheight() // 2) - (500 // 2)
-        help_window.geometry(f"600x500+{x}+{y}")
+        x = (help_window.winfo_screenwidth() // 2) - (650 // 2)
+        y = (help_window.winfo_screenheight() // 2) - (550 // 2)
+        help_window.geometry(f"650x550+{x}+{y}")
+        
+        # 创建主框架
+        main_frame = ctk.CTkFrame(help_window, corner_radius=15)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        # 添加标题
+        title_label = ctk.CTkLabel(main_frame, text="📖 使用帮助", 
+                                  font=ctk.CTkFont(family=self.font_family, size=24, weight="bold"))
+        title_label.pack(pady=(20, 10))
         
         # 帮助内容
-        help_text_widget = tk.Text(help_window, font=(self.font_family, 11),
-                                   wrap=tk.WORD, bg="white", fg="#333",
-                                   relief=tk.FLAT, bd=0)
-        help_text_widget.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
-        help_text_widget.insert(tk.END, help_text)
-        help_text_widget.config(state=tk.DISABLED)
+        help_text_widget = ctk.CTkTextbox(main_frame, 
+                                         font=ctk.CTkFont(family=self.font_family, size=13),
+                                         wrap="word", corner_radius=10)
+        help_text_widget.pack(fill=tk.BOTH, expand=True, padx=20, pady=(10, 20))
+        help_text_widget.insert("0.0", help_text)
+        help_text_widget.configure(state="disabled")
     
     def update_status(self):
         """更新状态信息"""
@@ -282,7 +293,7 @@ class LauncherGUI:
             files_status.append("信息库模块 ✗")
         
         status_text = " | ".join(files_status)
-        self.status_label.config(text=status_text)
+        self.status_label.configure(text=status_text)
     
     def run(self):
         """运行启动器"""
